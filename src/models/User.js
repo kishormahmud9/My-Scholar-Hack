@@ -9,7 +9,7 @@ export const UserModel = {
     prisma.user.findMany({
       include: { business: true },
     }),
-     // ✅ Update user by ID
+  // ✅ Update user by ID
   update: async (prisma, id, data) =>
     prisma.user.update({
       where: { id },
@@ -20,5 +20,32 @@ export const UserModel = {
   delete: async (prisma, id) =>
     prisma.user.delete({
       where: { id },
+    }),
+
+  // ✅ User + Full Profile (ALL relations)
+  findByIdWithProfile: async (prisma, id) =>
+    prisma.user.findUnique({
+      where: { id },
+      include: {
+        profile: {
+          include: {
+            educations: true,
+            activities: true,
+            work: true,
+            volunteer: true,
+            awards: true,
+            challenges: true,
+            essays: true,
+            academicInterest: true,
+            scholarships: true,
+            progress: true,
+            familyBackground: true,
+            studentIdentity: true,
+            essayNarrative: true,
+            writingPreference: true,
+            uniqueExperience: true,
+          },
+        },
+      },
     }),
 };

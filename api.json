@@ -1,0 +1,171 @@
+{
+  "info": {
+    "name": "Scholarship Management System - Profile APIs",
+    "description": "Complete Profile Management APIs for Scholarship System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "YOUR_JWT_TOKEN_HERE",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "Update User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/update-user",
+              "host": ["{{base_url}}"],
+              "path": ["update-user"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"username\": \"john_doe\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Education",
+      "item": [
+        {
+          "name": "Add Education",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/add-education",
+              "host": ["{{base_url}}"],
+              "path": ["add-education"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userProfileId\": \"PROFILE_ID\",\n  \"institutionName\": \"ABC High School\",\n  \"level\": \"High School\",\n  \"startYear\": 2019,\n  \"endYear\": 2023\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Academic Interest",
+      "item": [
+        {
+          "name": "Upsert Academic Interest",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/upsert-academic-interest",
+              "host": ["{{base_url}}"],
+              "path": ["upsert-academic-interest"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userProfileId\": \"PROFILE_ID\",\n  \"intendedMajor\": \"Computer Science\",\n  \"whyThisField\": \"I love problem solving\",\n  \"careerGoals\": \"Software Engineer\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Activities",
+      "item": [
+        {
+          "name": "Add Extra Curricular Activity",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/add-extra-curricular-activities",
+              "host": ["{{base_url}}"],
+              "path": ["add-extra-curricular-activities"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userProfileId\": \"PROFILE_ID\",\n  \"activityName\": \"Debate Club\",\n  \"role\": \"Member\",\n  \"impact\": \"Improved communication skills\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Essay",
+      "item": [
+        {
+          "name": "Add Essay",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/add-essay",
+              "host": ["{{base_url}}"],
+              "path": ["add-essay"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userProfileId\": \"PROFILE_ID\",\n  \"title\": \"Leadership\",\n  \"question\": \"Describe your leadership experience\",\n  \"answer\": \"I led my school club\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Profile Progress",
+      "item": [
+        {
+          "name": "Update Profile Progress",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/update-profile-progress",
+              "host": ["{{base_url}}"],
+              "path": ["update-profile-progress"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userProfileId\": \"PROFILE_ID\",\n  \"progressPercent\": 60,\n  \"completedSections\": [\"education\", \"activities\"]\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -15,6 +15,11 @@ app.use(cors());
 // Middleware to parse JSON
 app.use(express.json());
 
+app.use((req, res, next) => {
+  req.prisma = prisma;
+  next();
+});
+
 // ✅ Global routes
 app.use("/", globalRoutes);
 // ✅ user related routes

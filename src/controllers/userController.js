@@ -3,34 +3,15 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { generateTokens } from "../lib/generateToken.js";
 import DevBuildError from "../lib/DevBuildError.js";
-import { generateUniqueUsername } from "../lib/utilityFunction.js";
-import { UserDetailsModel } from "../models/UserDetails.js";
-import { BusinessModel } from "../models/BusinessModel.js";
 
 // ✅ User Registration
 export const registerUser = async (req, res, next) => {
   try {
     const prisma = req.app.get("prisma");
-    const {
-      name,
-      email,
-      password,
-      phone,
-      business_name,
-      role_id,
-      address,
-      gender,
-      marital_status,
-      image,
-      signature,
-      logo,
-    } = req.body;
+    const { name, email, password } = req.body;
 
     const existingUser = await UserModel.findByEmail(prisma, email);
     if (existingUser) throw new DevBuildError("Email already exists", 400);
-
-    // ✅ Generate unique username
-    const username = await generateUniqueUsername(prisma, name);
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -41,45 +22,19 @@ export const registerUser = async (req, res, next) => {
       const user = await tx.user.create({
         data: {
           name,
-          username,
           email,
-          password: hashedPassword,
-          status: "pending",
-        },
-      });
-
-      // 2️⃣ Create User Details
-      await tx.userDetails.create({
-        data: {
-          userId: user.id,
-          phone,
-          gender,
-          image,
-          signature,
-          address,
-          marital_status,
-        },
-      });
-
-      // 3️⃣ Create Business
-      const slug = business_name.toLowerCase().replace(/\s+/g, "-");
-      await tx.business.create({
-        data: {
-          ownerId: user.id,
-          title: business_name,
-          slug,
-          phone,
-          logo,
-          description: "",
-          status: "active",
-          address,
+          passwordHash: hashedPassword,
+          // status: "active",
+          // role: "student",
         },
       });
 
       return user;
     });
 
-    res.status(201).json({ message: "User registered successfully" });
+    res
+      .status(201)
+      .json({ message: "User registered successfully", user: result });
   } catch (error) {
     next(error);
   }
@@ -141,6 +96,30 @@ export const refreshToken = async (req, res, next) => {
         res.status(200).json({ accessToken: newAccessToken });
       }
     );
+  } catch (error) {
+    next(error);
+  }
+};
+
+// User details by ID
+export const userDetails = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const prisma = req.prisma; // already injected middleware দিয়ে
+
+    const user = await UserModel.findByIdWithProfile(prisma, id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
   } catch (error) {
     next(error);
   }

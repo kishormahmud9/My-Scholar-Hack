@@ -36,6 +36,12 @@ enum SubscriptionStatus {
   past_due
 }
 
+enum FirstGenStatus {
+  yes
+  no
+  not_sure
+}
+
 enum ScholarshipDeadlineTimeline {
   SIX_PLUS_MONTHS
   THREE_TO_SIX_MONTHS
@@ -89,10 +95,16 @@ model UserProfile {
   scholarships StudentScholarshipInterest?
   progress     ProfileProgress?
 
-  essays Essay[]
+  essays           Essay[]
+  academicInterest AcademicInterest?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  familyBackground  FamilyBackground?
+  studentIdentity   StudentIdentity?
+  essayNarrative    EssayNarrative?
+  writingPreference WritingPreference?
+  uniqueExperience  UniqueExperience?
 }
 
 model Education {
@@ -261,6 +273,90 @@ model Essay {
   user        User         @relation(fields: [userId], references: [id])
   profile     UserProfile? @relation(fields: [userProfileId], references: [id])
   scholarship Scholarship? @relation(fields: [scholarshipId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AcademicInterest {
+  id            String      @id @default(uuid())
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id])
+
+  intendedMajor String
+  whyThisField  String // long narrative
+  careerGoals   String // 5–10 year vision
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FamilyBackground {
+  id            String      @id @default(uuid())
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id])
+
+  firstGenStatus       FirstGenStatus?
+  householdIncomeRange String?
+  householdSize        Int?
+  familySituations     Json? // single-parent, immigrant, military, etc.
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StudentIdentity {
+  id            String      @id @default(uuid())
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id])
+
+  raceEthnicity        Json?
+  genderIdentity       String?
+  otherIdentityFactors Json? // LGBTQ+, disability, ESL, DACA
+  religionOrCulture    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EssayNarrative {
+  id            String      @id @default(uuid())
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id])
+
+  influentialPerson     String?
+  mistakeAndLesson      String?
+  failureStory          String?
+  issueYouCareAbout     String?
+  whatMakesYouDifferent String?
+  communityChangeIdea   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WritingPreference {
+  id            String      @id @default(uuid())
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id])
+
+  writingConfidenceLevel Int? // 1–5
+  writingChallenges      Json? // writer's block, grammar, structure
+  aiHelpPreferences      Json? // brainstorm, outline, edit, examples
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UniqueExperience {
+  id            String      @id @default(uuid())
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id])
+
+  hobbies           String?
+  uniqueExperiences String?
+  proudMoment       String?
+  additionalNotes   String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
