@@ -1,6 +1,26 @@
 // import { UserProfileModel } from "../models/UserProfileModel.js";
 
+import { UserModel } from "../models/User.js";
 import { UserProfileModel } from "../models/UserProfile.js";
+
+export const getAllUsersWithProfile = async (req, res) => {
+  try {
+    const prisma = req.prisma;
+
+    const users = await UserModel.findAllWithProfile(prisma);
+
+    return res.json({
+      success: true,
+      data: users,
+    });
+  } catch (error) {
+    console.error("getAllUsersWithProfile error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch users",
+    });
+  }
+};
 
 export const updateUser = async (req, res) => {
   try {

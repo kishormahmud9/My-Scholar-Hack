@@ -28,6 +28,7 @@ import {
   editStudentAward,
   editStudentChallenge,
   editStudentWork,
+  getAllUsersWithProfile,
   updateProfileProgress,
   updateUser,
   upsertEssayNarrative,
@@ -42,6 +43,7 @@ globalRoutes.post("/register", registerUser);
 globalRoutes.post("/login", loginUser);
 globalRoutes.post("/refresh-token", refreshToken);
 
+globalRoutes.get("/users", getAllUsersWithProfile);
 globalRoutes.get("/user-details/:id", userDetails);
 globalRoutes.post("/update-user", updateUser);
 globalRoutes.post("/upsert-user-profile", upsertUserProfile);

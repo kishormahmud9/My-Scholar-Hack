@@ -48,4 +48,29 @@ export const UserModel = {
         },
       },
     }),
+
+  findAllWithProfile: async (prisma) =>
+    prisma.user.findMany({
+      include: {
+        profile: {
+          include: {
+            educations: true,
+            activities: true,
+            work: true,
+            volunteer: true,
+            awards: true,
+            challenges: true,
+            essays: true,
+            academicInterest: true,
+            scholarships: true,
+            progress: true,
+            familyBackground: true,
+            studentIdentity: true,
+            essayNarrative: true,
+            writingPreference: true,
+            uniqueExperience: true,
+          },
+        },
+      },
+    }),
 };
