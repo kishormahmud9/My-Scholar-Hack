@@ -1,4 +1,4 @@
-import DevBuildError from "../lib/DevBuildError.js"
+import DevBuildError from "../lib/DevBuildError.js";
 
 const errorHandler = (err, req, res, next) => {
     console.error("🔥 Error caught by middleware:", err);

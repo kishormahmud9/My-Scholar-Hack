@@ -1,13 +1,75 @@
-// import { UserProfileModel } from "../models/UserProfileModel.js";
 
-import { UserModel } from "../models/User.js";
-import { UserProfileModel } from "../models/UserProfile.js";
+import bcrypt from "bcrypt";
+import DevBuildError from "../../lib/DevBuildError.js";
+import { UserService } from "./user.service.js";
 
-export const getAllUsersWithProfile = async (req, res) => {
+
+
+// ✅ User Registration
+ const registerUser = async (req, res, next) => {
+  try {
+    const prisma = req.app.get("prisma");
+    const { name, email, password } = req.body;
+
+    const existingUser = await UserService.findByEmail(prisma, email);
+    if (existingUser) throw new DevBuildError("Email already exists", 400);
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // ✅ Run everything in a single transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // 1️⃣ Create User
+      const user = await tx.user.create({
+        data: {
+          name,
+          email,
+          passwordHash: hashedPassword,
+          // status: "active",
+          // role: "student",
+        },
+      });
+
+      return user;
+    });
+
+    res
+      .status(201)
+      .json({ message: "User registered successfully", user: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// User details by ID
+ const userDetails = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const prisma = req.prisma; // already injected middleware দিয়ে
+
+    const user = await UserService.findByIdWithProfile(prisma, id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+ const getAllUsersWithProfile = async (req, res) => {
   try {
     const prisma = req.prisma;
 
-    const users = await UserModel.findAllWithProfile(prisma);
+    const users = await UserService.findAllWithProfile(prisma);
 
     return res.json({
       success: true,
@@ -22,7 +84,7 @@ export const getAllUsersWithProfile = async (req, res) => {
   }
 };
 
-export const updateUser = async (req, res) => {
+ const updateUser = async (req, res) => {
   try {
     const prisma = req.prisma;
 
@@ -51,152 +113,7 @@ export const updateUser = async (req, res) => {
   }
 };
 
-export const upsertUserProfile = async (req, res) => {
-  try {
-    const { userId, ...data } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({ message: "userId required" });
-    }
-
-    const profile = await UserProfileModel.upsertByUserId(
-      req.prisma,
-      userId,
-      data
-    );
-
-    res.json({
-      success: true,
-      message: "User profile saved successfully",
-      data: profile,
-    });
-  } catch (error) {
-    console.error("upsertUserProfile error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to save user profile",
-    });
-  }
-};
-
-export const createEducation = async (req, res) => {
-  try {
-    const prisma = req.prisma;
-    const { userProfileId, institutionName, level, startYear, endYear } =
-      req.body;
-
-    const education = await prisma.education.create({
-      data: {
-        userProfileId,
-        institutionName,
-        level,
-        startYear,
-        endYear,
-      },
-    });
-
-    return res.json({
-      success: true,
-      message: "Education added successfully",
-      data: education,
-    });
-  } catch (error) {
-    console.error("createEducation error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to add education",
-    });
-  }
-};
-
-export const editEducation = async (req, res) => {
-  try {
-    const prisma = req.prisma;
-    const { id, ...data } = req.body;
-
-    const updatedEducation = await prisma.education.update({
-      where: { id },
-      data,
-    });
-
-    return res.json({
-      success: true,
-      message: "Education updated successfully",
-      data: updatedEducation,
-    });
-  } catch (error) {
-    console.error("editEducation error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to update education",
-    });
-  }
-};
-
-export const academicInterest = async (req, res) => {
-  try {
-    const prisma = req.prisma;
-    const { userProfileId, intendedMajor, whyThisField, careerGoals } =
-      req.body;
-
-    const result = await prisma.academicInterest.upsert({
-      where: { userProfileId },
-      update: {
-        intendedMajor,
-        whyThisField,
-        careerGoals,
-      },
-      create: {
-        userProfileId,
-        intendedMajor,
-        whyThisField,
-        careerGoals,
-      },
-    });
-
-    return res.json({
-      success: true,
-      message: "Academic interest saved successfully",
-      data: result,
-    });
-  } catch (error) {
-    console.error("academicInterest error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to save academic interest",
-    });
-  }
-};
-
-export const addExtraCurricularActivities = async (req, res) => {
-  try {
-    const prisma = req.prisma;
-    const { userProfileId, activityName, role, impact } = req.body;
-
-    const activity = await prisma.studentActivity.create({
-      data: {
-        userProfileId,
-        activityName,
-        role,
-        impact,
-      },
-    });
-
-    return res.json({
-      success: true,
-      message: "Activity added successfully",
-      data: activity,
-    });
-  } catch (error) {
-    console.error("addExtraCurricularActivities error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to add activity",
-    });
-  }
-};
-
-export const addVolunteerWork = async (req, res) => {
+ const addVolunteerWork = async (req, res) => {
   try {
     const prisma = req.prisma;
     const { userProfileId, organization, timeline } = req.body;
@@ -223,7 +140,7 @@ export const addVolunteerWork = async (req, res) => {
   }
 };
 
-export const addFamilyBackground = async (req, res) => {
+ const addFamilyBackground = async (req, res) => {
   try {
     const prisma = req.prisma;
     const {
@@ -265,150 +182,7 @@ export const addFamilyBackground = async (req, res) => {
   }
 };
 
-export const addUniqueExperiences = async (req, res) => {
-  try {
-    const prisma = req.prisma;
-    const {
-      userProfileId,
-      hobbies,
-      uniqueExperiences,
-      proudMoment,
-      additionalNotes,
-    } = req.body;
-
-    const result = await prisma.uniqueExperience.upsert({
-      where: { userProfileId },
-      update: {
-        hobbies,
-        uniqueExperiences,
-        proudMoment,
-        additionalNotes,
-      },
-      create: {
-        userProfileId,
-        hobbies,
-        uniqueExperiences,
-        proudMoment,
-        additionalNotes,
-      },
-    });
-
-    return res.json({
-      success: true,
-      message: "Unique experiences saved successfully",
-      data: result,
-    });
-  } catch (error) {
-    console.error("addUniqueExperiences error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to save unique experiences",
-    });
-  }
-};
-
-export const addDiversity = async (req, res) => {
-  try {
-    const prisma = req.prisma;
-    const {
-      userProfileId,
-      raceEthnicity,
-      genderIdentity,
-      otherIdentityFactors,
-      religionOrCulture,
-    } = req.body;
-
-    const result = await prisma.studentIdentity.upsert({
-      where: { userProfileId },
-      update: {
-        raceEthnicity,
-        genderIdentity,
-        otherIdentityFactors,
-        religionOrCulture,
-      },
-      create: {
-        userProfileId,
-        raceEthnicity,
-        genderIdentity,
-        otherIdentityFactors,
-        religionOrCulture,
-      },
-    });
-
-    return res.json({
-      success: true,
-      message: "Student identity saved successfully",
-      data: result,
-    });
-  } catch (error) {
-    console.error("addDiversity error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to save student identity",
-    });
-  }
-};
-
-export const addScholarshipSpecificInfo = async (req, res) => {
-  try {
-    const prisma = req.prisma;
-    const { userProfileId, interestTypes, deadlineTimeline } = req.body;
-
-    const result = await prisma.studentScholarshipInterest.upsert({
-      where: { userProfileId },
-      update: {
-        interestTypes,
-        deadlineTimeline,
-      },
-      create: {
-        userProfileId,
-        interestTypes,
-        deadlineTimeline,
-      },
-    });
-
-    return res.json({
-      success: true,
-      message: "Scholarship preferences saved successfully",
-      data: result,
-    });
-  } catch (error) {
-    console.error("addScholarshipSpecificInfo error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to save scholarship preferences",
-    });
-  }
-};
-
-export const addSpecificQuestions = async (req, res) => {
-  try {
-    const prisma = req.prisma;
-    const { userProfileId, question, answer } = req.body;
-
-    const essay = await prisma.essay.create({
-      data: {
-        userProfileId,
-        question,
-        answer,
-      },
-    });
-
-    return res.json({
-      success: true,
-      message: "Specific question added successfully",
-      data: essay,
-    });
-  } catch (error) {
-    console.error("addSpecificQuestions error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to add specific question",
-    });
-  }
-};
-
-export const addStudentWork = async (req, res) => {
+ const addStudentWork = async (req, res) => {
   try {
     const prisma = req.prisma;
     const { userProfileId, jobTitle, employer, isCurrent } = req.body;
@@ -436,7 +210,7 @@ export const addStudentWork = async (req, res) => {
   }
 };
 
-export const editStudentWork = async (req, res) => {
+ const editStudentWork = async (req, res) => {
   try {
     const prisma = req.prisma;
     const { id, ...data } = req.body;
@@ -460,7 +234,7 @@ export const editStudentWork = async (req, res) => {
   }
 };
 
-export const deleteStudentWork = async (req, res) => {
+ const deleteStudentWork = async (req, res) => {
   try {
     const prisma = req.prisma;
     const { id } = req.body;
@@ -482,7 +256,7 @@ export const deleteStudentWork = async (req, res) => {
   }
 };
 
-export const addStudentAward = async (req, res) => {
+ const addStudentAward = async (req, res) => {
   try {
     const prisma = req.prisma;
     const { userProfileId, awardName, reason } = req.body;
@@ -509,7 +283,7 @@ export const addStudentAward = async (req, res) => {
   }
 };
 
-export const editStudentAward = async (req, res) => {
+ const editStudentAward = async (req, res) => {
   try {
     const prisma = req.prisma;
     const { id, ...data } = req.body;
@@ -533,7 +307,7 @@ export const editStudentAward = async (req, res) => {
   }
 };
 
-export const deleteStudentAward = async (req, res) => {
+ const deleteStudentAward = async (req, res) => {
   try {
     const prisma = req.prisma;
     const { id } = req.body;
@@ -555,7 +329,7 @@ export const deleteStudentAward = async (req, res) => {
   }
 };
 
-export const addStudentChallenge = async (req, res) => {
+ const addStudentChallenge = async (req, res) => {
   try {
     const prisma = req.prisma;
     const { userProfileId, challengeType, description } = req.body;
@@ -582,7 +356,7 @@ export const addStudentChallenge = async (req, res) => {
   }
 };
 
-export const editStudentChallenge = async (req, res) => {
+ const editStudentChallenge = async (req, res) => {
   try {
     const prisma = req.prisma;
     const { id, ...data } = req.body;
@@ -606,7 +380,7 @@ export const editStudentChallenge = async (req, res) => {
   }
 };
 
-export const deleteStudentChallenge = async (req, res) => {
+ const deleteStudentChallenge = async (req, res) => {
   try {
     const prisma = req.prisma;
     const { id } = req.body;
@@ -628,7 +402,7 @@ export const deleteStudentChallenge = async (req, res) => {
   }
 };
 
-export const addEssay = async (req, res) => {
+ const addEssay = async (req, res) => {
   try {
     const prisma = req.prisma;
     const { userProfileId, title, question, answer } = req.body;
@@ -656,7 +430,7 @@ export const addEssay = async (req, res) => {
   }
 };
 
-export const editEssay = async (req, res) => {
+ const editEssay = async (req, res) => {
   try {
     const prisma = req.prisma;
     const { id, ...data } = req.body;
@@ -680,7 +454,7 @@ export const editEssay = async (req, res) => {
   }
 };
 
-export const deleteEssay = async (req, res) => {
+ const deleteEssay = async (req, res) => {
   try {
     const prisma = req.prisma;
     const { id } = req.body;
@@ -702,7 +476,7 @@ export const deleteEssay = async (req, res) => {
   }
 };
 
-export const upsertEssayNarrative = async (req, res) => {
+ const upsertEssayNarrative = async (req, res) => {
   try {
     const prisma = req.prisma;
     const { userProfileId, ...data } = req.body;
@@ -730,7 +504,7 @@ export const upsertEssayNarrative = async (req, res) => {
   }
 };
 
-export const upsertWritingPreference = async (req, res) => {
+ const upsertWritingPreference = async (req, res) => {
   try {
     const prisma = req.prisma;
     const { userProfileId, ...data } = req.body;
@@ -758,7 +532,7 @@ export const upsertWritingPreference = async (req, res) => {
   }
 };
 
-export const updateProfileProgress = async (req, res) => {
+ const updateProfileProgress = async (req, res) => {
   try {
     const prisma = req.prisma;
     const { userProfileId, progressPercent, completedSections } = req.body;
@@ -789,3 +563,6 @@ export const updateProfileProgress = async (req, res) => {
     });
   }
 };
+
+
+export const UserController = { registerUser,  userDetails , getAllUsersWithProfile, updateUser, addVolunteerWork, addFamilyBackground, addStudentWork, editStudentWork, deleteStudentWork, addStudentAward, editStudentAward, deleteStudentAward, addStudentChallenge, editStudentChallenge, deleteStudentChallenge, addEssay, editEssay, deleteEssay, upsertEssayNarrative, upsertWritingPreference, updateProfileProgress };
