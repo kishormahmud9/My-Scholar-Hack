@@ -7,7 +7,7 @@ import { envVars } from "../../config/env.js";
 
 
 // ✅ Login User
- const loginUser = async (req, res, next) => {
+const loginUser = async (req, res, next) => {
   try {
     const prisma = req.app.get("prisma");
     const { email, password } = req.body;
@@ -25,6 +25,11 @@ import { envVars } from "../../config/env.js";
       throw new DevBuildError("Invalid credentials", 400);
     }
 
+    // ✅ Check if user is verified
+    if (!user.isVerified) {
+      throw new DevBuildError("User is not verified. Please verify your email.", 403);
+    }
+
     // ✅ Generate Tokens
     const { accessToken, refreshToken } = generateTokens(user);
 
@@ -37,7 +42,7 @@ import { envVars } from "../../config/env.js";
 };
 
 // ✅ Refresh Token
- const refreshToken = async (req, res, next) => {
+const refreshToken = async (req, res, next) => {
   try {
     const prisma = req.app.get("prisma"); // ✅ Fixed (was db before)
     const { refreshToken } = req.body;
@@ -53,6 +58,10 @@ import { envVars } from "../../config/env.js";
         // ✅ Check if user still exists
         const user = await AuthService.findById(prisma, decoded.id);
         if (!user) throw new DevBuildError("User not found", 400);
+
+        if (user.isVerified === false) {
+          throw new DevBuildError("User is not verified. Please verify your email.", 403);
+        }
 
         // ✅ Issue new access token
         const newAccessToken = jwt.sign(
