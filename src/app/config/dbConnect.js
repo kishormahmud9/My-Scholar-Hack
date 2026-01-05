@@ -1,16 +1,17 @@
 import dotenv from "dotenv";
 import { Pool } from "pg";
+import { envVars } from "./env";
 
 dotenv.config();
 
 const connectDB = async () => {
   try {
     const pool = new Pool({
-      host: process.env.DB_HOST,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-      port: process.env.DB_PORT || 5432,
+      host: envVars.DB_HOST,
+      user: envVars.DB_USER,
+      password: envVars.DB_PASSWORD,
+      database: envVars.DB_NAME,
+      port: envVars.DB_PORT || 5432,
     });
 
     const client = await pool.connect();

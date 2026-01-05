@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 
 import errorHandler from "./app/middleware/errorHandler.js";
 import prisma from "./app/prisma/client.js";
@@ -15,6 +16,7 @@ app.set("prisma", prisma);
 
 // Global middleware
 app.use(cors());
+app.use(cookieParser());
 app.use(express.json());
 
 // Attach prisma to request
