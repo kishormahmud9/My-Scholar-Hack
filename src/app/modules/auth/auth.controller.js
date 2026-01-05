@@ -1,5 +1,9 @@
 import DevBuildError from "../../lib/DevBuildError.js";
-import { UserService } from "../user/user.service.js";
+import { AuthService } from "./auth.service.js";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import { generateTokens } from "../../utils/generateToken.js";
+import { envVars } from "../../config/env.js";
 
 
 // ✅ Login User
@@ -9,12 +13,14 @@ import { UserService } from "../user/user.service.js";
     const { email, password } = req.body;
     console.log("📌 Login Request:", email);
 
-    // ✅ Fetch user from MySQL
-    const user = await UserModel.findByEmail(prisma, email);
+    if (!password) throw new DevBuildError("Password required", 400);
+
+    // ✅ Fetch user from DB
+    const user = await AuthService.findByEmail(prisma, email);
     if (!user) throw new DevBuildError("User not found", 400);
 
-    // ✅ Password Matching
-    const isMatch = await bcrypt.compare(password, user.password);
+    // ✅ Password Matching (use stored passwordHash)
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
       throw new DevBuildError("Invalid credentials", 400);
     }
@@ -40,19 +46,19 @@ import { UserService } from "../user/user.service.js";
 
     jwt.verify(
       refreshToken,
-      process.env.JWT_REFRESH_TOKEN,
+      envVars.JWT_REFRESH_TOKEN,
       async (err, decoded) => {
         if (err) throw new DevBuildError("Invalid refresh token", 403);
 
         // ✅ Check if user still exists
-        const user = await UserService.findById(prisma, decoded.id);
+        const user = await AuthService.findById(prisma, decoded.id);
         if (!user) throw new DevBuildError("User not found", 400);
 
         // ✅ Issue new access token
         const newAccessToken = jwt.sign(
           { id: user.id, role: user.role },
-          process.env.JWT_SECRET_TOKEN,
-          { expiresIn: process.env.JWT_EXPIRES_IN }
+          envVars.JWT_SECRET_TOKEN,
+          { expiresIn: envVars.JWT_EXPIRES_IN }
         );
 
         res.status(200).json({ accessToken: newAccessToken });

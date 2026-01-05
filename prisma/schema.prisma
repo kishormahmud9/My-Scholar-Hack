@@ -52,10 +52,12 @@ enum ScholarshipDeadlineTimeline {
 model User {
   id           String   @id @default(uuid())
   name         String
-  email        String   @unique
+  email        String   @unique 
   passwordHash String?
   avatarUrl    String?
   role         UserRole @default(student)
+
+  isVerified    Boolean   @default(false)
 
   oauthProvider   OAuthProvider @default(email)
   oauthProviderId String?

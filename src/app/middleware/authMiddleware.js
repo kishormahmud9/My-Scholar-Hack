@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import { envVars } from "../config/env.js";
 
 dotenv.config();
 
@@ -9,7 +10,7 @@ export const authenticateUser = (req, res, next) => {
     if (!token) return res.status(401).json({ message: "Access denied. No token provided." });
 
     try {
-        const decoded = jwt.verify(token.split(" ")[1], process.env.JWT_SECRET_TOKEN);
+        const decoded = jwt.verify(token.split(" ")[1], envVars.JWT_SECRET_TOKEN);
         req.user = decoded;
         next();
     } catch (error) {
