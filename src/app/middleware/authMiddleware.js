@@ -6,15 +6,27 @@ dotenv.config();
 
 // ✅ Authentication Middleware
 export const authenticateUser = (req, res, next) => {
-    const token = req.header("Authorization");
-    if (!token) return res.status(401).json({ message: "Access denied. No token provided." });
+    let token = req.header("Authorization");
+
+    // Fallback to cookie if Authorization header is missing
+    if (!token && req.cookies?.accessToken) {
+        token = `Bearer ${req.cookies.accessToken}`;
+    }
+
+    if (!token) {
+        return res.status(401).json({ message: "Access denied. No token provided." });
+    }
 
     try {
-        const decoded = jwt.verify(token.split(" ")[1], envVars.JWT_SECRET_TOKEN);
+        // Safe token extraction (handles "Bearer <token>", "Bearer<token>", or just "<token>")
+        const jwtToken = token.replace(/^Bearer\s*/i, "");
+
+        const decoded = jwt.verify(jwtToken, envVars.JWT_SECRET_TOKEN);
         req.user = decoded;
         next();
     } catch (error) {
-        res.status(400).json({ message: "Invalid token" });
+        console.error("🔑 JWT Verification Error:", error.message);
+        res.status(401).json({ message: "Invalid or expired token" });
     }
 };
 
