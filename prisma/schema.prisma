@@ -127,7 +127,33 @@ model UserProfile {
   essayNarrative    EssayNarrative?
   writingPreference WritingPreference?
   uniqueExperience  UniqueExperience?
+  basicInformation BasicInformation?
 }
+
+enum SchoolType {
+  HIGH_SCHOOL
+  COLLEGE
+  UNIVERSITY
+  OTHER
+}
+
+
+model BasicInformation {
+  id            String   @id @default(cuid())
+
+  userProfileId String   @unique
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id])
+
+  fullName      String
+  schoolType    SchoolType
+  gpa           Float?
+  grade         String?
+  location      String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
 
 model Education {
   id            String      @id @default(uuid())

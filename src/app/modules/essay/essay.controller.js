@@ -3,7 +3,8 @@ import { EssayService } from "./essay.service.js";
 const upsertNarrative = async (req, res) => {
     try {
         const prisma = req.prisma;
-        const { userProfileId, ...data } = req.body;
+        const userProfileId = req.user?.userProfileId || req.body.userProfileId;
+        const { userProfileId: _, ...data } = req.body;
 
         if (!userProfileId) {
             return res.status(400).json({ success: false, message: "userProfileId required" });
@@ -25,7 +26,7 @@ const upsertNarrative = async (req, res) => {
 const getNarrative = async (req, res) => {
     try {
         const prisma = req.prisma;
-        const { userProfileId } = req.params;
+        const userProfileId = req.params.userProfileId || req.user?.userProfileId;
 
         const result = await EssayService.findNarrativeByProfileId(prisma, userProfileId);
 
@@ -42,7 +43,9 @@ const getNarrative = async (req, res) => {
 const createEssay = async (req, res) => {
     try {
         const prisma = req.prisma;
-        const { userId, userProfileId, title, prompt, contentDraft } = req.body;
+        const userId = req.user.userId;
+        const userProfileId = req.user.userProfileId || req.body.userProfileId;
+        const { title, prompt, contentDraft } = req.body;
 
         const result = await EssayService.createEssay(prisma, {
             userId,
@@ -103,7 +106,7 @@ const deleteEssay = async (req, res) => {
 const getEssays = async (req, res) => {
     try {
         const prisma = req.prisma;
-        const { userProfileId } = req.params;
+        const userProfileId = req.params.userProfileId || req.user?.userProfileId;
 
         const result = await EssayService.findAllEssaysByProfileId(prisma, userProfileId);
 

@@ -77,10 +77,11 @@ export const checkAuth =
         // Verify token
         const decoded = jwt.verify(jwtToken, envVars.JWT_SECRET_TOKEN);
 
-        // Fetch user from DB
+        // Fetch user from DB with profile
         const userId = decoded.id || decoded.userId;
         const user = await prisma.user.findUnique({
           where: { id: userId },
+          include: { profile: true },
         });
 
         if (!user) {
@@ -88,6 +89,18 @@ export const checkAuth =
             "User does not exist",
             StatusCodes.BAD_REQUEST
           );
+        }
+
+        // Lazy create profile for students if missing
+        let profileId = user.profile?.id;
+        if (!profileId && user.role === "STUDENT") {
+          const newProfile = await prisma.userProfile.create({
+            data: {
+              userId: user.id,
+              fullName: user.name || "Student",
+            },
+          });
+          profileId = newProfile.id;
         }
 
         if (!user.isVerified) {
@@ -125,6 +138,7 @@ export const checkAuth =
         // Attach user info to request
         req.user = {
           userId: user.id,
+          userProfileId: profileId,
           email: user.email,
           role: user.role,
         };

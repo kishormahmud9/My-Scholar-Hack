@@ -33,22 +33,7 @@ const getProfileMe = async (req, res) => {
     const prisma = req.prisma;
     const userId = req.user.userId;
 
-    let profile = await ProfileService.findByUserId(prisma, userId);
-
-    // ✅ If profile doesn't exist, create a basic one instead of returning 404
-    if (!profile) {
-      // Fetch user to get potential default data like name
-      const user = await prisma.user.findUnique({ where: { id: userId } });
-
-      profile = await ProfileService.create(prisma, {
-        userId,
-        fullName: user?.name || "Student",
-        // Add other mandatory fields with defaults if necessary
-      });
-
-      // Fetch again to include all relations defined in findByUserId
-      profile = await ProfileService.findByUserId(prisma, userId);
-    }
+    const profile = await ProfileService.findByUserId(prisma, userId);
 
     res.json({
       success: true,

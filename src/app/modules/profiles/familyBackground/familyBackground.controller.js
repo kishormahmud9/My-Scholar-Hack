@@ -3,7 +3,8 @@ import { FamilyBackgroundService } from "./familyBackground.service.js";
 const upsertFamilyBackground = async (req, res) => {
     try {
         const prisma = req.prisma;
-        const { userProfileId, ...data } = req.body;
+        const userProfileId = req.user?.userProfileId || req.body.userProfileId;
+        const { userProfileId: _, ...data } = req.body;
 
         if (!userProfileId) {
             return res.status(400).json({
@@ -31,7 +32,7 @@ const upsertFamilyBackground = async (req, res) => {
 const getFamilyBackground = async (req, res) => {
     try {
         const prisma = req.prisma;
-        const { userProfileId } = req.params;
+        const userProfileId = req.params.userProfileId || req.user?.userProfileId;
 
         const result = await FamilyBackgroundService.findByProfileId(prisma, userProfileId);
 

@@ -3,7 +3,8 @@ import { AcademicInterestService } from "./academicInterest.service.js";
 const upsertAcademicInterest = async (req, res) => {
     try {
         const prisma = req.prisma;
-        const { userProfileId, ...data } = req.body;
+        const userProfileId = req.user?.userProfileId || req.body.userProfileId;
+        const { userProfileId: _, ...data } = req.body;
 
         if (!userProfileId) {
             return res.status(400).json({
@@ -31,7 +32,7 @@ const upsertAcademicInterest = async (req, res) => {
 const getAcademicInterest = async (req, res) => {
     try {
         const prisma = req.prisma;
-        const { userProfileId } = req.params;
+        const userProfileId = req.params.userProfileId || req.user?.userProfileId;
 
         const result = await AcademicInterestService.findByProfileId(prisma, userProfileId);
 
