@@ -119,6 +119,8 @@ model UserProfile {
 
   essays           Essay[]
   academicInterest AcademicInterest?
+  basicInformation BasicInformation?
+   extraCurricularsActivity ExtracurricularActivity?
 
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -127,7 +129,7 @@ model UserProfile {
   essayNarrative    EssayNarrative?
   writingPreference WritingPreference?
   uniqueExperience  UniqueExperience?
-  basicInformation BasicInformation?
+ 
 }
 
 enum SchoolType {
@@ -153,6 +155,25 @@ model BasicInformation {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
+
+model ExtracurricularActivity {
+  id            String   @id @default(cuid())
+
+  userProfileId String @unique
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  activityName  String
+  yearsInvolved String
+  leadership    String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userProfileId])
+}
+
+
+
 
 
 model Education {

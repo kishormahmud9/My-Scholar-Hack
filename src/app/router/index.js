@@ -17,6 +17,7 @@ import { UniqueExperienceRoutes } from "../modules/profiles/uniqueExperience/uni
 import { WritingPreferenceRoutes } from "../modules/profiles/writingPreference/writingPreference.route.js";
 import { EducationRoutes } from "../modules/profiles/education/education.route.js";
 import { BasicInformationRoutes } from "../modules/profiles/basicInformation/basicInformation.route.js";
+import { ExtracurricularActivityRoutes } from "../modules/profiles/extraCurricularActivities/extraCurricularActivities.route.js";
 
 export const router = Router();
 
@@ -44,6 +45,10 @@ const moduleRoutes = [
   {
     path: "/profile/academic-interest",
     route: AcademicInterestRoutes,
+  },
+  {
+    path: "/profile/extra-curricular-activities",
+    route: ExtracurricularActivityRoutes,
   },
   {
     path: "/family-background",
