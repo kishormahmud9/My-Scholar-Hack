@@ -1,6 +1,5 @@
 import DevBuildError from "../../lib/DevBuildError.js";
-import { AuthService } from "./auth.service.js";
-import bcrypt from "bcrypt";
+import { AuthService, forgotPasswordService } from "./auth.service.js";
 import jwt from "jsonwebtoken";
 import { envVars } from "../../config/env.js";
 import { createUserTokens } from "../../utils/userTokenGenerator.js";
@@ -147,6 +146,69 @@ const logout = async (req, res, next) => {
   }
 };
 
+const forgotPassword = async (req, res, next) => {
+  try {
+    const prisma = req.app.get("prisma");
+    const { email } = req.body;
+
+    if (!email) {
+      return sendResponse(res, {
+        success: false,
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: "Email is required",
+        data: null,
+      });
+    }
+
+    await forgotPasswordService(prisma, email);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "Password reset email sent successfully",
+      data: null,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const decodedToken = req.user;
+    const { newPassword } = req.body;
+    const id = req.body.id || req.query.id;
+
+    if (!newPassword || !id) {
+      const missing = [];
+      if (!newPassword) missing.push("newPassword (in body)");
+      if (!id) missing.push("id (in body or query)");
+
+      return sendResponse(res, {
+        success: false,
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: `Missing required fields: ${missing.join(", ")}`,
+        data: null,
+      });
+    }
+
+    const payload = { id, newPassword };
+
+    await AuthService.resetPassword(payload, decodedToken);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "Password reset successfully",
+      data: null,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+
 const googleCallback = async (req, res, next) => {
   try {
     let redirectTo = req.query.state ? String(req.query.state) : "";
@@ -176,4 +238,4 @@ const googleCallback = async (req, res, next) => {
 };
 
 
-export const AuthController = { credentialLogin, getNewAccessToken ,logout , googleCallback};
+export const AuthController = { credentialLogin, getNewAccessToken, logout, forgotPassword, resetPassword, googleCallback };

@@ -2,11 +2,19 @@ import express from "express";
 import { AuthController } from "./auth.controller.js";
 import passport from "passport";
 import { envVars } from "../../config/env.js";
+import {  checkAuth } from "../../middleware/authMiddleware.js";
+import { Role } from "../../utils/role.js";
 
 const router = express.Router();
 router.post("/login", AuthController.credentialLogin);
 router.post("/refresh-token", AuthController.getNewAccessToken);
 router.post("/logout", AuthController.logout);
+router.post("/forgot-password", AuthController.forgotPassword);
+router.post(
+  "/reset-password",
+    checkAuth(...Object.values(Role)),
+  AuthController.resetPassword
+);
 // Google login
 router.get("/google", (req, res, next) => {
   let redirect = req.query.redirect || "/";
