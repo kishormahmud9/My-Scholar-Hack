@@ -7,20 +7,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-enum UserRole {
-  student
-  admin
-  mentor
-  business
-}
-
-enum OAuthProvider {
-  email
-  google
-  facebook
-  apple
-}
-
 enum ApplicationStatus {
   not_started
   in_progress
@@ -49,18 +35,37 @@ enum ScholarshipDeadlineTimeline {
   LESS_THAN_ONE_MONTH
 }
 
+enum UserRole {
+  STUDENT
+  ADMIN
+  OWNER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum AuthProviderType {
+  EMAIL
+  GOOGLE
+}
+
 model User {
-  id           String   @id @default(uuid())
-  name         String
-  email        String   @unique 
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String?
   passwordHash String?
-  avatarUrl    String?
-  role         UserRole @default(student)
+  phoneNumber String?    
+  picture      String?
 
-  isVerified    Boolean   @default(false)
+  role        UserRole   @default(STUDENT)
+  status      UserStatus @default(ACTIVE)
+  isVerified  Boolean    @default(false)
+  isDeleted   Boolean    @default(false)
 
-  oauthProvider   OAuthProvider @default(email)
-  oauthProviderId String?
+  auths AuthProvider[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -72,14 +77,29 @@ model User {
   notifications Notification[]
 
   @@index([role])
+  @@index([status])
 }
+
+model AuthProvider {
+  id           String           @id @default(cuid())
+  provider     AuthProviderType
+  providerId   String?
+  userId       String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@index([userId])
+}
+
+
 
 model UserProfile {
   id     String @id @default(uuid())
   userId String @unique
   user   User   @relation(fields: [userId], references: [id])
 
-  firstName     String
+  fullName     String
   bio           String?
   state         String?
   gpa           Float?
@@ -99,6 +119,9 @@ model UserProfile {
 
   essays           Essay[]
   academicInterest AcademicInterest?
+  basicInformation BasicInformation?
+  extraCurricularsActivity ExtracurricularActivity?
+  volunteerWork  VolunteerWork?
 
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -107,7 +130,66 @@ model UserProfile {
   essayNarrative    EssayNarrative?
   writingPreference WritingPreference?
   uniqueExperience  UniqueExperience?
+ 
 }
+
+enum SchoolType {
+  HIGH_SCHOOL
+  COLLEGE
+  UNIVERSITY
+  OTHER
+}
+
+
+model BasicInformation {
+  id            String   @id @default(cuid())
+
+  userProfileId String   @unique
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id])
+
+  fullName      String
+  schoolType    SchoolType
+  gpa           Float?
+  grade         String?
+  location      String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model ExtracurricularActivity {
+  id            String   @id @default(cuid())
+
+  userProfileId String @unique
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  activityName  String
+  yearsInvolved String
+  leadership    String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userProfileId])
+}
+
+
+model VolunteerWork  {
+  id            String   @id @default(cuid())
+
+  userProfileId String @unique
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  WhatVolunteerWork String 
+  organization String
+  totalHours   Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userProfileId])
+}
+
+
 
 model Education {
   id            String      @id @default(uuid())

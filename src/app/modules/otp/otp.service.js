@@ -5,16 +5,11 @@ import DevBuildError from "../../lib/DevBuildError.js";
 
 const OTP_EXPIRATION = 2 * 60; // 2 minutes
 
-/* -------------------------------------------------------------------------- */
-/*                               HELPERS                                      */
-/* -------------------------------------------------------------------------- */
+// HELPERS for OTP generation
 
 const generateOtp = (length = 6) =>
   crypto.randomInt(10 ** (length - 1), 10 ** length).toString();
 
-/* -------------------------------------------------------------------------- */
-/*                               SERVICE                                      */
-/* -------------------------------------------------------------------------- */
 
 export const OtpService = {
   // ✅ Send OTP

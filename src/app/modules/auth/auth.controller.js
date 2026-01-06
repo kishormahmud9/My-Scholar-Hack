@@ -1,12 +1,12 @@
 import DevBuildError from "../../lib/DevBuildError.js";
-import { AuthService } from "./auth.service.js";
-import bcrypt from "bcrypt";
+import { AuthService, forgotPasswordService } from "./auth.service.js";
 import jwt from "jsonwebtoken";
 import { envVars } from "../../config/env.js";
 import { createUserTokens } from "../../utils/userTokenGenerator.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 import { setAuthCookie } from "../../utils/setCookie.js";
 import { StatusCodes } from "http-status-codes";
+import passport from "passport";
 
 // ✅ Login User
 const loginUser = async (req, res, next) => {
@@ -36,18 +36,52 @@ const loginUser = async (req, res, next) => {
     //   );
     // }
 
-    // ✅ Generate Tokens
-    const userToken = createUserTokens(user);
-    setAuthCookie(res, userToken);
-    sendResponse(res, {
-      success: true,
-      message: "User logged in Successful",
-      statusCode: StatusCodes.OK,
-      data: {
-        accessToken: userToken.accessToken,
-        refreshToken: userToken.refreshToken,
-      },
-    });
+const credentialLogin = async (req, res, next) => {
+  try {
+    passport.authenticate("local", async (err, user, info) => {
+      try {
+        if (err) {
+          return next(
+            new DevBuildError(err, StatusCodes.UNAUTHORIZED)
+          );
+        }
+
+        if (!user) {
+          return next(
+            new DevBuildError(
+              info?.message || "Authentication failed",
+              StatusCodes.UNAUTHORIZED
+            )
+          );
+        }
+
+        // Generate access & refresh tokens
+        const userToken = await createUserTokens(user);
+
+        // Remove sensitive fields before sending user
+        const {
+          passwordHash,
+          ...saveUser
+        } = user;
+
+        // Set cookies
+        setAuthCookie(res, userToken);
+
+        // Send response
+        sendResponse(res, {
+          success: true,
+          message: "User logged in successfully",
+          statusCode: StatusCodes.OK,
+          data: {
+            accessToken: userToken.accessToken,
+            refreshToken: userToken.refreshToken,
+            user: saveUser,
+          },
+        });
+      } catch (innerError) {
+        next(innerError);
+      }
+    })(req, res, next);
   } catch (error) {
     next(error);
   }
