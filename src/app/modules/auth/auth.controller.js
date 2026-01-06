@@ -13,7 +13,6 @@ const loginUser = async (req, res, next) => {
   try {
     const prisma = req.app.get("prisma");
     const { email, password } = req.body;
-    console.log("📌 Login Request:", email);
 
     if (!password) throw new DevBuildError("Password required", 400);
 
@@ -21,19 +20,21 @@ const loginUser = async (req, res, next) => {
     const user = await AuthService.findByEmail(prisma, email);
     if (!user) throw new DevBuildError("User not found", 400);
 
+    console.log(user);
+
     // ✅ Password Matching (use stored passwordHash)
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
       throw new DevBuildError("Invalid credentials", 400);
     }
 
-    // ✅ Check if user is verified
-    if (!user.isVerified) {
-      throw new DevBuildError(
-        "User is not verified. Please verify your email.",
-        403
-      );
-    }
+    // // ✅ Check if user is verified
+    // if (!user.isVerified) {
+    //   throw new DevBuildError(
+    //     "User is not verified. Please verify your email.",
+    //     403
+    //   );
+    // }
 
     // ✅ Generate Tokens
     const userToken = createUserTokens(user);
@@ -68,10 +69,7 @@ const getNewAccessToken = async (req, res, next) => {
 
     let decoded;
     try {
-      decoded = jwt.verify(
-        refreshToken,
-        envVars.JWT_REFRESH_TOKEN
-      );
+      decoded = jwt.verify(refreshToken, envVars.JWT_REFRESH_TOKEN);
     } catch (err) {
       throw new DevBuildError("Invalid refresh token", StatusCodes.FORBIDDEN);
     }
@@ -137,4 +135,4 @@ const logout = async (req, res, next) => {
     next(error);
   }
 };
-export const AuthController = { loginUser, getNewAccessToken ,logout};
+export const AuthController = { loginUser, getNewAccessToken, logout };
