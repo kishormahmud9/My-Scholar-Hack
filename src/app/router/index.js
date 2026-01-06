@@ -20,6 +20,7 @@ import { EducationRoutes } from "../modules/profiles/education/education.route.j
 import { ExtracurricularActivityRoutes } from "../modules/profiles/extraCurricularActivities/extraCurricularActivities.route.js";
 import { BasicInformationRoutes } from "../modules/profiles/basicInformation/basicInformation.route.js";
 import { VolunteerRoutes } from "../modules/profiles/VolunteerWorkCommunityService/VolunteerWorkCommunityService.route.js";
+import { AdminRoutes } from "../modules/admin/admin.route.js";
 
 export const router = Router();
 
@@ -103,6 +104,8 @@ const moduleRoutes = [
   {
     path: "/education",
     route: EducationRoutes,
+    path: "/admin",
+    route: AdminRoutes,
   },
 ];
 
