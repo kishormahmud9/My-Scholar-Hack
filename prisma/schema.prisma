@@ -120,7 +120,8 @@ model UserProfile {
   essays           Essay[]
   academicInterest AcademicInterest?
   basicInformation BasicInformation?
-   extraCurricularsActivity ExtracurricularActivity?
+  extraCurricularsActivity ExtracurricularActivity?
+  volunteerWork  VolunteerWork?
 
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -173,6 +174,20 @@ model ExtracurricularActivity {
 }
 
 
+model VolunteerWork  {
+  id            String   @id @default(cuid())
+
+  userProfileId String @unique
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  WhatVolunteerWork String 
+  organization String
+  totalHours   Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userProfileId])
+}
 
 
 

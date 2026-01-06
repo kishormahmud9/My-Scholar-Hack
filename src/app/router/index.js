@@ -16,8 +16,10 @@ import { ScholarshipInterestRoutes } from "../modules/profiles/scholarshipIntere
 import { UniqueExperienceRoutes } from "../modules/profiles/uniqueExperience/uniqueExperience.route.js";
 import { WritingPreferenceRoutes } from "../modules/profiles/writingPreference/writingPreference.route.js";
 import { EducationRoutes } from "../modules/profiles/education/education.route.js";
-import { BasicInformationRoutes } from "../modules/profiles/basicInformation/basicInformation.route.js";
+
 import { ExtracurricularActivityRoutes } from "../modules/profiles/extraCurricularActivities/extraCurricularActivities.route.js";
+import { BasicInformationRoutes } from "../modules/profiles/basicInformation/basicInformation.route.js";
+import { VolunteerRoutes } from "../modules/profiles/VolunteerWorkCommunityService/VolunteerWorkCommunityService.route.js";
 
 export const router = Router();
 
@@ -49,6 +51,10 @@ const moduleRoutes = [
   {
     path: "/profile/extra-curricular-activities",
     route: ExtracurricularActivityRoutes,
+  },
+  {
+    path: "/profile/volunteer-work",
+    route: VolunteerRoutes,
   },
   {
     path: "/family-background",
