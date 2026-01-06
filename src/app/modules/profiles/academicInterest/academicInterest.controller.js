@@ -1,55 +1,133 @@
+import { StatusCodes } from "http-status-codes";
 import { AcademicInterestService } from "./academicInterest.service.js";
 
-const upsertAcademicInterest = async (req, res) => {
-    try {
-        const prisma = req.prisma;
-        const userProfileId = req.user?.userProfileId || req.body.userProfileId;
-        const { userProfileId: _, ...data } = req.body;
+const getAcademicInterest = async (req, res, next) => {
+  try {
+    const prisma = req.prisma;
+    const userId = req.user.userId;
 
-        if (!userProfileId) {
-            return res.status(400).json({
-                success: false,
-                message: "userProfileId is required",
-            });
+    const profile = await prisma.userProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!profile) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        message: "User profile not found",
+      });
+    }
+
+    const result =
+      await AcademicInterestService.getByUserProfileId(
+        prisma,
+        profile.id
+      );
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const createAcademicInterest = async (req, res, next) => {
+  try {
+    const prisma = req.prisma;
+    const userId = req.user.userId;
+    const { intendedMajor, whyThisField, careerGoals } = req.body;
+
+    if (!intendedMajor || !whyThisField || !careerGoals) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    const profile = await prisma.userProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!profile) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        message: "User profile not found",
+      });
+    }
+
+    const existing =
+      await AcademicInterestService.getByUserProfileId(
+        prisma,
+        profile.id
+      );
+
+    if (existing) {
+      return res.status(StatusCodes.CONFLICT).json({
+        success: false,
+        message:
+          "Academic interest already exists. Use update instead.",
+      });
+    }
+
+    const result =
+      await AcademicInterestService.create(
+        prisma,
+        profile.id,
+        {
+          intendedMajor,
+          whyThisField,
+          careerGoals,
         }
+      );
 
-        const result = await AcademicInterestService.upsert(prisma, userProfileId, data);
-
-        return res.json({
-            success: true,
-            message: "Academic interest saved successfully",
-            data: result,
-        });
-    } catch (error) {
-        console.error("upsertAcademicInterest error:", error);
-        return res.status(500).json({
-            success: false,
-            message: "Failed to save academic interest",
-        });
-    }
+    res.status(StatusCodes.CREATED).json({
+      success: true,
+      message: "Academic interest created successfully",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
-const getAcademicInterest = async (req, res) => {
-    try {
-        const prisma = req.prisma;
-        const userProfileId = req.params.userProfileId || req.user?.userProfileId;
+const updateAcademicInterest = async (req, res, next) => {
+  try {
+    const prisma = req.prisma;
+    const userId = req.user.userId;
+    const data = req.body;
 
-        const result = await AcademicInterestService.findByProfileId(prisma, userProfileId);
+    const profile = await prisma.userProfile.findUnique({
+      where: { userId },
+    });
 
-        return res.json({
-            success: true,
-            data: result,
-        });
-    } catch (error) {
-        console.error("getAcademicInterest error:", error);
-        return res.status(500).json({
-            success: false,
-            message: "Failed to fetch academic interest",
-        });
+    if (!profile) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        message: "User profile not found",
+      });
     }
+
+    const result =
+      await AcademicInterestService.update(
+        prisma,
+        profile.id,
+        data
+      );
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Academic interest updated successfully",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
+
 
 export const AcademicInterestController = {
-    upsertAcademicInterest,
-    getAcademicInterest,
+  getAcademicInterest,
+  createAcademicInterest,
+  updateAcademicInterest,
 };

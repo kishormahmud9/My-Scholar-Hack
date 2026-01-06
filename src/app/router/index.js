@@ -38,11 +38,11 @@ const moduleRoutes = [
     route: ProfileRoutes,
   },
   {
-    path: "/profile",
+    path: "/profile/basic-information",
     route: BasicInformationRoutes,
   },
   {
-    path: "/academic-interest",
+    path: "/profile/academic-interest",
     route: AcademicInterestRoutes,
   },
   {

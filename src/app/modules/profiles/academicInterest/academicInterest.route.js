@@ -1,21 +1,28 @@
 import express from "express";
-import { AcademicInterestController } from "./academicInterest.controller.js";
+
 
 import { Role } from "../../../utils/role.js";
+import { AcademicInterestController } from "./academicInterest.controller.js";
 import { checkAuth } from "../../../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post(
-    "/",
-    checkAuth(...Object.values(Role)),
-    AcademicInterestController.upsertAcademicInterest
+router.get(
+  "/",
+  checkAuth(Role.STUDENT),
+  AcademicInterestController.getAcademicInterest
 );
 
-router.get(
-    "/:userProfileId",
-    checkAuth(...Object.values(Role)),
-    AcademicInterestController.getAcademicInterest
+router.post(
+  "/create",
+  checkAuth(Role.STUDENT),
+  AcademicInterestController.createAcademicInterest
+);
+
+router.put(
+  "/update",
+  checkAuth(Role.STUDENT),
+  AcademicInterestController.updateAcademicInterest
 );
 
 export const AcademicInterestRoutes = router;

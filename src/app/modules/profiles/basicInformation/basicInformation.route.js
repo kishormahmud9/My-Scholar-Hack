@@ -6,19 +6,19 @@ import { Role } from "../../../utils/role.js";
 const router = express.Router();
 
 router.post(
-  "/basic-information/create",
+  "/create",
   checkAuth(Role.STUDENT),
   BasicInformationController.upsert
 );
 
 router.get(
-  "/basic-information",
+  "/",
   checkAuth(Role.STUDENT),
   BasicInformationController.getMe
 );
 
 router.put(
-  "/basic-information/update",
+  "/update",
   checkAuth(Role.STUDENT),
   BasicInformationController.update
 );

@@ -1,18 +1,26 @@
 export const AcademicInterestService = {
-    upsert: async (prisma, userProfileId, data) => {
-        return await prisma.academicInterest.upsert({
-            where: { userProfileId },
-            update: data,
-            create: {
-                userProfileId,
-                ...data,
-            },
-        });
-    },
+  // GET
+  getByUserProfileId: async (prisma, userProfileId) => {
+    return prisma.academicInterest.findUnique({
+      where: { userProfileId },
+    });
+  },
 
-    findByProfileId: async (prisma, userProfileId) => {
-        return await prisma.academicInterest.findUnique({
-            where: { userProfileId },
-        });
-    },
+  // CREATE (POST)
+  create: async (prisma, userProfileId, data) => {
+    return prisma.academicInterest.create({
+      data: {
+        userProfileId,
+        ...data,
+      },
+    });
+  },
+
+  // UPDATE (PUT/PATCH)
+  update: async (prisma, userProfileId, data) => {
+    return prisma.academicInterest.update({
+      where: { userProfileId },
+      data,
+    });
+  },
 };
