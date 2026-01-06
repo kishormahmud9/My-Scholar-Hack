@@ -3,13 +3,10 @@ import { UserRoutes } from "../modules/user/user.route.js";
 import { ProfileRoutes } from "../modules/profile/profile.route.js";
 import { AuthRouter } from "../modules/auth/auth.route.js";
 import { OtpRouter } from "../modules/otp/otp.route.js";
-
-
-
+import { AdminRoutes } from "../modules/admin/admin.route.js";
 
 export const router = Router();
 const moduleRoutes = [
- 
   {
     path: "/user",
     route: UserRoutes,
@@ -25,6 +22,10 @@ const moduleRoutes = [
   {
     path: "/profile",
     route: ProfileRoutes,
+  },
+  {
+    path: "/admin",
+    route: AdminRoutes,
   },
 ];
 
