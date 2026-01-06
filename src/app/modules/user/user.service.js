@@ -1,5 +1,8 @@
+import { envVars } from "../../config/env.js";
+import DevBuildError from "../../lib/DevBuildError.js";
+import bcrypt from "bcrypt";
 export const UserService = {
-  create: async (prisma, data) => prisma.user.create({ data }),
+  // create: async (prisma, data) => prisma.user.create({ data }),
   findByEmail: async (prisma, email) =>
     prisma.user.findUnique({ where: { email } }),
   findByUsername: async (prisma, username) =>
@@ -74,3 +77,53 @@ export const UserService = {
       },
     }),
 };
+
+export const createUserService = async (payload) => {
+  const { prisma ,email, password, picture, ...rest } = payload;
+
+  if (!email || !password) {
+    throw new DevBuildError("Email and password are required", 400);
+  }
+
+  // Check if user already exists
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (existingUser) {
+    throw new DevBuildError("User already exists", 400);
+  }
+
+  // Hash password
+  const hashedPassword = await bcrypt.hash(
+    password,
+    Number(envVars.BCRYPT_SALT_ROUND || 10)
+  );
+
+  // Create user + auth provider in one transaction
+  const user = await prisma.user.create({
+    data: {
+      email,
+      passwordHash: hashedPassword,
+      picture,
+      isVerified: false,
+      role: "STUDENT",
+      ...rest,
+
+      auths: {
+        create: {
+          provider: "EMAIL",
+          providerId: email,
+        },
+      },
+    },
+    include: {
+      auths: true,
+    },
+  });
+
+  return user;
+};
+
+
+

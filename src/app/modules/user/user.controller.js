@@ -1,45 +1,35 @@
 
-import bcrypt from "bcrypt";
-import DevBuildError from "../../lib/DevBuildError.js";
-import { UserService } from "./user.service.js";
+import { createUserService, UserService } from "./user.service.js";
+
+import { StatusCodes } from "http-status-codes";
+import { sendResponse } from "../../utils/sendResponse.js";
 
 
-
-// ✅ User Registration
- const registerUser = async (req, res, next) => {
+const registerUser = async (req, res, next) => {
   try {
+    const picture = req.file?.path || null;
     const prisma = req.app.get("prisma");
-    const { name, email, password } = req.body;
+    const payload = {
+      prisma,
+      ...req.body,
+      picture,
+    };
 
-    const existingUser = await UserService.findByEmail(prisma, email);
-    if (existingUser) throw new DevBuildError("Email already exists", 400);
+    const result = await createUserService(payload);
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // ✅ Run everything in a single transaction
-    const result = await prisma.$transaction(async (tx) => {
-      // 1️⃣ Create User
-      const user = await tx.user.create({
-        data: {
-          name,
-          email,
-          passwordHash: hashedPassword,
-          // status: "active",
-          // role: "student",
-        },
-      });
-
-      return user;
+    sendResponse(res, {
+      success: true,
+      message: "User created successfully",
+      statusCode: StatusCodes.CREATED,
+      data: result,
     });
-
-    res
-      .status(201)
-      .json({ message: "User registered successfully", user: result });
   } catch (error) {
     next(error);
   }
 };
+
+
+
 
 // User details by ID
  const userDetails = async (req, res, next) => {

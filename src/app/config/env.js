@@ -10,6 +10,12 @@ const loadEnvVars = () => {
     "JWT_REFRESH_TOKEN",
     "JWT_EXPIRES_IN",
     "JWT_REFRESH_EXPIRES_IN",
+     "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "EXPRESS_SESSION",
+    "FRONT_END_URL",
+    "GOOGLE_CALLBACK_URL",
+    "BCRYPT_SALT_ROUND",
 
     "DATABASE_URL",
 
@@ -35,6 +41,15 @@ const loadEnvVars = () => {
     JWT_REFRESH_TOKEN: process.env.JWT_REFRESH_TOKEN,
     JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN,
     JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN,
+    EXPRESS_SESSION: process.env.EXPRESS_SESSION,
+    BCRYPT_SALT_ROUND: process.env.BCRYPT_SALT_ROUND,
+
+    // google OAuth
+     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ,
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ,
+    EXPRESS_SESSION: process.env.EXPRESS_SESSION ,
+    GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL ,
+    FRONT_END_URL: process.env.FRONT_END_URL ,
 
     // Database
     DATABASE_URL: process.env.DATABASE_URL,
