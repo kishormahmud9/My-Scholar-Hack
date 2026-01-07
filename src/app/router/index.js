@@ -21,6 +21,10 @@ import { VolunteerRoutes } from "../modules/profiles/VolunteerWorkCommunityServi
 import { AdminRoutes } from "../modules/admin/admin.route.js";
 import { FamilyBackgroundRoutes } from "../modules/profiles/familyBackgroundCommunityService/familyBackground.route.js";
 import { UniqueExperienceRoutes } from "../modules/profiles/uniqueExperience/uniqueExperience.route.js";
+import { DiversityIdentityRoutes } from "../modules/profiles/diversityIdentity/diversityIdentity.route.js";
+import { ScholarshipSpecificInfoRoutes } from "../modules/profiles/scholarshipSpecificInfo/scholarshipSpecificInfo.route.js";
+import { AnythingElseRoutes } from "../modules/profiles/anythingElse/anythingElse.route.js";
+import { EssaySpecificQuestionsRoutes } from "../modules/profiles/essaySpecificQuestions/essaySpecificQuestions.route.js";
 
 export const router = Router();
 
@@ -64,6 +68,22 @@ const moduleRoutes = [
   {
     path: "/profile/unique-experience",
     route: UniqueExperienceRoutes,
+  },
+  {
+    path: "/profile/diversity-identity",
+    route: DiversityIdentityRoutes,
+  },
+  {
+    path: "/profile/scholarship-specific-info",
+    route: ScholarshipSpecificInfoRoutes,
+  },
+  {
+    path: "/profile/anything-else",
+    route: AnythingElseRoutes,
+  },
+  {
+    path: "/profile/essay-specific-questions",
+    route: EssaySpecificQuestionsRoutes,
   },
   {
     path: "/student-identity",

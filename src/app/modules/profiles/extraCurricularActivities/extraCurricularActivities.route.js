@@ -3,7 +3,6 @@ import { ExtracurricularActivityController } from "./extraCurricularActivities.c
 import { Role } from "../../../utils/role.js";
 import { checkAuthMiddleware } from "../../../middleware/checkAuthMiddleware.js";
 
-
 const router = express.Router();
 
 router.get(
@@ -13,15 +12,9 @@ router.get(
 );
 
 router.post(
-  "/create",
+  "/upsert",
   checkAuthMiddleware(Role.STUDENT),
-  ExtracurricularActivityController.createExtracurricularActivity
-);
-
-router.put(
-  "/update",
-  checkAuthMiddleware(Role.STUDENT),
-  ExtracurricularActivityController.updateExtracurricularActivity
+  ExtracurricularActivityController.saveExtracurricularActivity
 );
 
 export const ExtracurricularActivityRoutes = router;

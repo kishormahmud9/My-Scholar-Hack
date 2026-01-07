@@ -1,14 +1,14 @@
-export const BasicInformationService = {
+export const AnythingElseService = {
   // GET
   getByProfileId: async (prisma, userProfileId) => {
-    return prisma.basicInformation.findUnique({
+    return prisma.anythingElse.findUnique({
       where: { userProfileId },
     });
   },
 
   // CREATE or UPDATE
   upsert: async (prisma, userProfileId, data) => {
-    return prisma.basicInformation.upsert({
+    return prisma.anythingElse.upsert({
       where: { userProfileId },
       update: data,
       create: {

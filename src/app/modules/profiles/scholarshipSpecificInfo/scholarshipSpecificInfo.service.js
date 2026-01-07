@@ -1,14 +1,12 @@
-export const BasicInformationService = {
-  // GET
+export const ScholarshipSpecificInfoService = {
   getByProfileId: async (prisma, userProfileId) => {
-    return prisma.basicInformation.findUnique({
+    return prisma.scholarshipSpecificInfo.findUnique({
       where: { userProfileId },
     });
   },
 
-  // CREATE or UPDATE
   upsert: async (prisma, userProfileId, data) => {
-    return prisma.basicInformation.upsert({
+    return prisma.scholarshipSpecificInfo.upsert({
       where: { userProfileId },
       update: data,
       create: {

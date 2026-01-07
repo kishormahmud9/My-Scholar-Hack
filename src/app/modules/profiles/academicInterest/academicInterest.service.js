@@ -1,8 +1,20 @@
 export const AcademicInterestService = {
   // GET
-  getByUserProfileId: async (prisma, userProfileId) => {
+  getByProfileId: async (prisma, userProfileId) => {
     return prisma.academicInterest.findUnique({
       where: { userProfileId },
+    });
+  },
+
+  // UPSERT
+  upsert: async (prisma, userProfileId, data) => {
+    return prisma.academicInterest.upsert({
+      where: { userProfileId },
+      update: data,
+      create: {
+        userProfileId,
+        ...data,
+      },
     });
   },
 

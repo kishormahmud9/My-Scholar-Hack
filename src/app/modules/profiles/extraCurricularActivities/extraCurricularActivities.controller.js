@@ -18,7 +18,7 @@ const getExtracurricularActivity = async (req, res, next) => {
     }
 
     const data =
-      await ExtracurricularActivityService.getByUserProfileId(
+      await ExtracurricularActivityService.getByProfileId(
         prisma,
         profile.id
       );
@@ -32,7 +32,7 @@ const getExtracurricularActivity = async (req, res, next) => {
   }
 };
 
-const createExtracurricularActivity = async (req, res, next) => {
+const saveExtracurricularActivity = async (req, res, next) => {
   try {
     const prisma = req.prisma;
     const userId = req.user.userId;
@@ -56,64 +56,16 @@ const createExtracurricularActivity = async (req, res, next) => {
       });
     }
 
-    const existing =
-      await ExtracurricularActivityService.getByUserProfileId(
-        prisma,
-        profile.id
-      );
-
-    if (existing) {
-      return res.status(StatusCodes.CONFLICT).json({
-        success: false,
-        message:
-          "Extracurricular activity already exists. Use update instead.",
-      });
-    }
-
-    const data =
-      await ExtracurricularActivityService.create(
+    const result =
+      await ExtracurricularActivityService.upsert(
         prisma,
         profile.id,
         { activityName, yearsInvolved, leadership }
       );
 
-    res.status(StatusCodes.CREATED).json({
-      success: true,
-      message: "Extracurricular activity added successfully",
-      data,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-const updateExtracurricularActivity = async (req, res, next) => {
-  try {
-    const prisma = req.prisma;
-    const userId = req.user.userId;
-    const data = req.body;
-
-    const profile = await prisma.userProfile.findUnique({
-      where: { userId },
-    });
-
-    if (!profile) {
-      return res.status(StatusCodes.NOT_FOUND).json({
-        success: false,
-        message: "User profile not found",
-      });
-    }
-
-    const result =
-      await ExtracurricularActivityService.update(
-        prisma,
-        profile.id,
-        data
-      );
-
     res.status(StatusCodes.OK).json({
       success: true,
-      message: "Extracurricular activity updated successfully",
+      message: "Extracurricular activity saved successfully",
       data: result,
     });
   } catch (error) {
@@ -123,6 +75,5 @@ const updateExtracurricularActivity = async (req, res, next) => {
 
 export const ExtracurricularActivityController = {
   getExtracurricularActivity,
-  createExtracurricularActivity,
-  updateExtracurricularActivity,
+  saveExtracurricularActivity,
 };
