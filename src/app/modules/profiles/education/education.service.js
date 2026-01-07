@@ -1,26 +1,35 @@
-export const EducationService = {
-    create: async (prisma, data) => {
-        return await prisma.education.create({
-            data,
-        });
-    },
+import prisma from "../../../prisma/client.js";
 
-    update: async (prisma, id, data) => {
-        return await prisma.education.update({
-            where: { id },
-            data,
-        });
-    },
 
-    delete: async (prisma, id) => {
-        return await prisma.education.delete({
-            where: { id },
-        });
-    },
+export const createEducation = async (userProfileId, data) => {
+  const educationData = {
+    institutionName: data.institutionName,
+    level: data.level,
+    startYear: data.startYear,
+    endYear: data.endYear,
+    major: data.major,
+    achievements: data.achievements,
+  };
 
-    findAllByProfileId: async (prisma, userProfileId) => {
-        return await prisma.education.findMany({
-            where: { userProfileId },
-        });
+  return prisma.education.upsert({
+    where: { userProfileId },
+    update: educationData,
+    create: {
+      userProfileId,
+      ...educationData,
     },
+  });
+};
+
+export const getEducationsByProfile = async (userProfileId) => {
+  return prisma.education.findMany({
+    where: { userProfileId },
+    orderBy: { startYear: "desc" },
+  });
+};
+
+export const deleteEducation = async (id, userProfileId) => {
+  return prisma.education.deleteMany({
+    where: { id, userProfileId },
+  });
 };

@@ -4,16 +4,15 @@ import { ProfileRoutes } from "../modules/profiles/profile/profile.route.js";
 import { AuthRouter } from "../modules/auth/auth.route.js";
 import { OtpRouter } from "../modules/otp/otp.route.js";
 import { AcademicInterestRoutes } from "../modules/profiles/academicInterest/academicInterest.route.js";
-import { StudentIdentityRoutes } from "../modules/profiles/studentIdentity/studentIdentity.route.js";
+import { StudentIdentityRoutes } from "../modules/studentIdentity/studentIdentity.route.js";
 import { EssayRoutes } from "../modules/essay/essay.route.js";
-import { StudentActivityRoutes } from "../modules/profiles/studentActivity/studentActivity.route.js";
-import { StudentWorkRoutes } from "../modules/profiles/studentWork/studentWork.route.js";
-import { StudentVolunteerRoutes } from "../modules/profiles/studentVolunteer/studentVolunteer.route.js";
-import { StudentAwardRoutes } from "../modules/profiles/studentAward/studentAward.route.js";
-import { StudentChallengeRoutes } from "../modules/profiles/studentChallenge/studentChallenge.route.js";
-import { ScholarshipInterestRoutes } from "../modules/profiles/scholarshipInterest/scholarshipInterest.route.js";
-import { WritingPreferenceRoutes } from "../modules/profiles/writingPreference/writingPreference.route.js";
-import { EducationRoutes } from "../modules/profiles/education/education.route.js";
+import { StudentActivityRoutes } from "../modules/studentActivity/studentActivity.route.js";
+import { StudentWorkRoutes } from "../modules/studentWork/studentWork.route.js";
+import { StudentVolunteerRoutes } from "../modules/studentVolunteer/studentVolunteer.route.js";
+import { StudentAwardRoutes } from "../modules/studentAward/studentAward.route.js";
+import { StudentChallengeRoutes } from "../modules/studentChallenge/studentChallenge.route.js";
+import { ScholarshipInterestRoutes } from "../modules/scholarshipInterest/scholarshipInterest.route.js";
+import { WritingPreferenceRoutes } from "../modules/writingPreference/writingPreference.route.js";
 
 import { ExtracurricularActivityRoutes } from "../modules/profiles/extraCurricularActivities/extraCurricularActivities.route.js";
 import { BasicInformationRoutes } from "../modules/profiles/basicInformation/basicInformation.route.js";
@@ -25,6 +24,7 @@ import { DiversityIdentityRoutes } from "../modules/profiles/diversityIdentity/d
 import { ScholarshipSpecificInfoRoutes } from "../modules/profiles/scholarshipSpecificInfo/scholarshipSpecificInfo.route.js";
 import { AnythingElseRoutes } from "../modules/profiles/anythingElse/anythingElse.route.js";
 import { EssaySpecificQuestionsRoutes } from "../modules/profiles/essaySpecificQuestions/essaySpecificQuestions.route.js";
+import { EducationRoutes } from "../modules/profiles/education/education.route.js";
 
 export const router = Router();
 
@@ -85,6 +85,10 @@ const moduleRoutes = [
     path: "/profile/essay-specific-questions",
     route: EssaySpecificQuestionsRoutes,
   },
+    {
+    path: "/profile/education",
+    route: EducationRoutes,
+  },
   {
     path: "/student-identity",
     route: StudentIdentityRoutes,
@@ -117,14 +121,13 @@ const moduleRoutes = [
     path: "/scholarship-interest",
     route: ScholarshipInterestRoutes,
   },
-  
+
   {
     path: "/writing-preference",
     route: WritingPreferenceRoutes,
   },
+
   {
-    path: "/education",
-    route: EducationRoutes,
     path: "/admin",
     route: AdminRoutes,
   },

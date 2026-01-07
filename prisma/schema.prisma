@@ -278,20 +278,30 @@ model EssaySpecificQuestions {
   @@index([userProfileId])
 }
 
-
-
 model Education {
   id            String      @id @default(uuid())
-  userProfileId String
-  profile       UserProfile @relation(fields: [userProfileId], references: [id])
+
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
 
   institutionName String
-  level           String
+  level           String    // high_school | college | other
   startYear       Int
   endYear         Int?
+  major           String?
+  achievements    String?
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([level])
+  @@index([institutionName])
+  @@index([major])
 }
+
+
+
+
 
 model StudentActivity {
   id            String      @id @default(uuid())

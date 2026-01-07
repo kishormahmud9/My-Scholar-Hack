@@ -1,5 +1,5 @@
 import { StatusCodes } from "http-status-codes";
-import { VolunteerService } from "./VolunteerWorkcommunityService.service.js";
+import { VolunteerService } from "./VolunteerWorkCommunityService.service.js";
 
 const getVolunteer = async (req, res, next) => {
   try {
