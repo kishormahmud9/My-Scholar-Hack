@@ -179,7 +179,7 @@ model VolunteerWork  {
 
   userProfileId String @unique
   userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
-  WhatVolunteerWork String 
+  whatVolunteerWork String 
   organization String
   totalHours   Int
 

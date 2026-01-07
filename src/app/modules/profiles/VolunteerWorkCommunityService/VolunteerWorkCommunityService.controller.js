@@ -37,7 +37,7 @@ const createVolunteer = async (req, res, next) => {
   try {
     const prisma = req.prisma;
     const userId = req.user.userId;
-    const { organization, totalHours } = req.body;
+    const {whatVolunteerWork, organization, totalHours  } = req.body;
 
     if (!organization || totalHours === undefined) {
       return res.status(StatusCodes.BAD_REQUEST).json({
@@ -74,7 +74,11 @@ const createVolunteer = async (req, res, next) => {
       await VolunteerService.create(
         prisma,
         profile.id,
-        { organization, totalHours: Number(totalHours) }
+        {
+          organization,
+          totalHours: Number(totalHours),
+          whatVolunteerWork,
+        }
       );
 
     res.status(StatusCodes.CREATED).json({
@@ -91,7 +95,11 @@ const updateVolunteer = async (req, res, next) => {
   try {
     const prisma = req.prisma;
     const userId = req.user.userId;
-    const data = req.body;
+    const { WhatVolunteerWork, whatVolunteerWork, ...otherData } = req.body;
+    const data = {
+      ...otherData,
+      ...((WhatVolunteerWork || whatVolunteerWork) ? { WhatVolunteerWork: WhatVolunteerWork || whatVolunteerWork } : {})
+    };
 
     const profile = await prisma.userProfile.findUnique({
       where: { userId },
