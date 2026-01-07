@@ -1,32 +1,29 @@
 import express from "express";
-import { EducationController } from "./education.controller.js";
-import { Role } from "../../../utils/role.js";
 import { checkAuthMiddleware } from "../../../middleware/checkAuthMiddleware.js";
+import { EducationController } from './education.controller.js'
+import { Role } from "../../../utils/role.js";
 
 const router = express.Router();
 
+// Create education
 router.post(
-    "/",
-    checkAuthMiddleware(...Object.values(Role)),
-    EducationController.createEducation
+  "/upsert",
+  checkAuthMiddleware(...Object.values(Role)),
+  EducationController.createEducation
 );
 
+// Get my educations
 router.get(
-    "/:userProfileId",
-    checkAuthMiddleware(...Object.values(Role)),
-    EducationController.getEducations
+  "/",
+  checkAuthMiddleware(),
+  EducationController.getMyEducations
 );
 
-router.put(
-    "/:id",
-    checkAuthMiddleware(...Object.values(Role)),
-    EducationController.updateEducation
-);
-
+// Delete education
 router.delete(
-    "/:id",
-    checkAuthMiddleware(...Object.values(Role)),
-    EducationController.deleteEducation
+  "/:id",
+  checkAuthMiddleware(),
+  EducationController.deleteEducation
 );
 
 export const EducationRoutes = router;

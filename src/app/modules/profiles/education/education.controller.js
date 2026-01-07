@@ -1,89 +1,58 @@
-import { EducationService } from "./education.service.js";
+import * as EducationService from "./education.service.js";
+import { StatusCodes } from "http-status-codes";
 
-const createEducation = async (req, res) => {
-    try {
-        const prisma = req.prisma;
-        const { userProfileId, institutionName, level, startYear, endYear } = req.body;
+const createEducation = async (req, res, next) => {
+  try {
+    const { userProfileId } = req.user;
 
-        if (!userProfileId) {
-            return res.status(400).json({ success: false, message: "userProfileId required" });
-        }
+    const education = await EducationService.createEducation(
+      userProfileId,
+      req.body
+    );
 
-        const result = await EducationService.create(prisma, {
-            userProfileId,
-            institutionName,
-            level,
-            startYear,
-            endYear,
-        });
-
-        return res.json({
-            success: true,
-            message: "Education added successfully",
-            data: result,
-        });
-    } catch (error) {
-        console.error("createEducation error:", error);
-        return res.status(500).json({ success: false, message: "Failed to add education" });
-    }
+    res.status(StatusCodes.CREATED).json({
+      success: true,
+      data: education,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
-const updateEducation = async (req, res) => {
-    try {
-        const prisma = req.prisma;
-        const { id } = req.params;
-        const data = req.body;
+const getMyEducations = async (req, res, next) => {
+  try {
+    const { userProfileId } = req.user;
 
-        const result = await EducationService.update(prisma, id, data);
+    const educations =
+      await EducationService.getEducationsByProfile(userProfileId);
 
-        return res.json({
-            success: true,
-            message: "Education updated successfully",
-            data: result,
-        });
-    } catch (error) {
-        console.error("updateEducation error:", error);
-        return res.status(500).json({ success: false, message: "Failed to update education" });
-    }
+    res.status(StatusCodes.OK).json({
+      success: true,
+      data: educations,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
-const deleteEducation = async (req, res) => {
-    try {
-        const prisma = req.prisma;
-        const { id } = req.params;
+const deleteEducation = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { userProfileId } = req.user;
 
-        await EducationService.delete(prisma, id);
+    await EducationService.deleteEducation(id, userProfileId);
 
-        return res.json({
-            success: true,
-            message: "Education deleted successfully",
-        });
-    } catch (error) {
-        console.error("deleteEducation error:", error);
-        return res.status(500).json({ success: false, message: "Failed to delete education" });
-    }
-};
-
-const getEducations = async (req, res) => {
-    try {
-        const prisma = req.prisma;
-        const { userProfileId } = req.params;
-
-        const result = await EducationService.findAllByProfileId(prisma, userProfileId);
-
-        return res.json({
-            success: true,
-            data: result,
-        });
-    } catch (error) {
-        console.error("getEducations error:", error);
-        return res.status(500).json({ success: false, message: "Failed to fetch education" });
-    }
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Education deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const EducationController = {
-    createEducation,
-    updateEducation,
-    deleteEducation,
-    getEducations,
+  createEducation,
+  getMyEducations,
+  deleteEducation,
 };

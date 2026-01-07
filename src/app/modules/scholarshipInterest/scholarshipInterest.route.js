@@ -1,7 +1,8 @@
 import express from "express";
+import { checkAuthMiddleware } from "../../middleware/checkAuthMiddleware.js";
+import { Role } from "../../utils/role.js";
 import { ScholarshipInterestController } from "./scholarshipInterest.controller.js";
-import { Role } from "../../../utils/role.js";
-import { checkAuthMiddleware } from "../../../middleware/checkAuthMiddleware.js";
+
 
 const router = express.Router();
 
