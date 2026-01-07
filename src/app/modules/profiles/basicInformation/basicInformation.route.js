@@ -1,25 +1,26 @@
 import express from "express";
 import { BasicInformationController } from "./basicInformation.controller.js";
-import { checkAuth } from "../../../middleware/authMiddleware.js";
+
 import { Role } from "../../../utils/role.js";
+import { checkAuthMiddleware } from "../../../middleware/checkAuthMiddleware.js";
 
 const router = express.Router();
 
 router.post(
   "/create",
-  checkAuth(Role.STUDENT),
+  checkAuthMiddleware(Role.STUDENT),
   BasicInformationController.upsert
 );
 
 router.get(
   "/",
-  checkAuth(Role.STUDENT),
+  checkAuthMiddleware(Role.STUDENT),
   BasicInformationController.getMe
 );
 
 router.put(
   "/update",
-  checkAuth(Role.STUDENT),
+  checkAuthMiddleware(Role.STUDENT),
   BasicInformationController.update
 );
 
