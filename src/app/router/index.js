@@ -4,7 +4,6 @@ import { ProfileRoutes } from "../modules/profiles/profile/profile.route.js";
 import { AuthRouter } from "../modules/auth/auth.route.js";
 import { OtpRouter } from "../modules/otp/otp.route.js";
 import { AcademicInterestRoutes } from "../modules/profiles/academicInterest/academicInterest.route.js";
-import { FamilyBackgroundRoutes } from "../modules/profiles/familyBackground/familyBackground.route.js";
 import { StudentIdentityRoutes } from "../modules/profiles/studentIdentity/studentIdentity.route.js";
 import { EssayRoutes } from "../modules/essay/essay.route.js";
 import { StudentActivityRoutes } from "../modules/profiles/studentActivity/studentActivity.route.js";
@@ -13,7 +12,6 @@ import { StudentVolunteerRoutes } from "../modules/profiles/studentVolunteer/stu
 import { StudentAwardRoutes } from "../modules/profiles/studentAward/studentAward.route.js";
 import { StudentChallengeRoutes } from "../modules/profiles/studentChallenge/studentChallenge.route.js";
 import { ScholarshipInterestRoutes } from "../modules/profiles/scholarshipInterest/scholarshipInterest.route.js";
-import { UniqueExperienceRoutes } from "../modules/profiles/uniqueExperience/uniqueExperience.route.js";
 import { WritingPreferenceRoutes } from "../modules/profiles/writingPreference/writingPreference.route.js";
 import { EducationRoutes } from "../modules/profiles/education/education.route.js";
 
@@ -21,6 +19,8 @@ import { ExtracurricularActivityRoutes } from "../modules/profiles/extraCurricul
 import { BasicInformationRoutes } from "../modules/profiles/basicInformation/basicInformation.route.js";
 import { VolunteerRoutes } from "../modules/profiles/VolunteerWorkCommunityService/VolunteerWorkCommunityService.route.js";
 import { AdminRoutes } from "../modules/admin/admin.route.js";
+import { FamilyBackgroundRoutes } from "../modules/profiles/familyBackgroundCommunityService/familyBackground.route.js";
+import { UniqueExperienceRoutes } from "../modules/profiles/uniqueExperience/uniqueExperience.route.js";
 
 export const router = Router();
 
@@ -58,8 +58,12 @@ const moduleRoutes = [
     route: VolunteerRoutes,
   },
   {
-    path: "/family-background",
+    path: "/profile/family-background",
     route: FamilyBackgroundRoutes,
+  },
+  {
+    path: "/profile/unique-experience",
+    route: UniqueExperienceRoutes,
   },
   {
     path: "/student-identity",
@@ -93,10 +97,7 @@ const moduleRoutes = [
     path: "/scholarship-interest",
     route: ScholarshipInterestRoutes,
   },
-  {
-    path: "/unique-experience",
-    route: UniqueExperienceRoutes,
-  },
+  
   {
     path: "/writing-preference",
     route: WritingPreferenceRoutes,

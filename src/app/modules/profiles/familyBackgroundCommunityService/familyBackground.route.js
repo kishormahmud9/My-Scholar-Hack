@@ -1,20 +1,21 @@
 import express from "express";
+import { FamilyBackgroundController } from "./familyBackground.controller.js";
 import { checkAuthMiddleware } from "../../../middleware/checkAuthMiddleware.js";
 import { Role } from "../../../utils/role.js";
-import { UniqueExperienceController } from "./uniqueExperience.controller.js";
+
 
 const router = express.Router();
 
 router.get(
   "/",
   checkAuthMiddleware(Role.STUDENT),
- UniqueExperienceController.getUniqueExperience
+  FamilyBackgroundController.getFamilyBackground
 );
 
 router.post(
   "/upsert",
   checkAuthMiddleware(Role.STUDENT),
-  UniqueExperienceController.saveUniqueExperience
+  FamilyBackgroundController.saveFamilyBackground
 );
 
-export const UniqueExperienceRoutes = router;
+export const FamilyBackgroundRoutes = router;

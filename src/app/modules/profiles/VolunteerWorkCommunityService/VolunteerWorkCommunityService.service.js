@@ -1,14 +1,14 @@
 export const VolunteerService = {
   // GET
   getByProfileId: async (prisma, userProfileId) => {
-    return prisma.studentVolunteer.findUnique({
+    return prisma.volunteerWork.findUnique({
       where: { userProfileId },
     });
   },
 
   // POST (create)
   create: async (prisma, userProfileId, data) => {
-    return prisma.studentVolunteer.create({
+    return prisma.volunteerWork.create({
       data: {
         userProfileId,
         ...data,
@@ -18,7 +18,7 @@ export const VolunteerService = {
 
   // UPDATE
   update: async (prisma, userProfileId, data) => {
-    return prisma.studentVolunteer.update({
+    return prisma.volunteerWork.update({
       where: { userProfileId },
       data,
     });

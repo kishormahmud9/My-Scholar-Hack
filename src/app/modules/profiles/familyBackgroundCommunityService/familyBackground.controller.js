@@ -1,7 +1,7 @@
 import { StatusCodes } from "http-status-codes";
-import { UniqueExperienceService } from "./uniqueExperience.service.js";
+import { FamilyBackgroundService } from "./familyBackground.service.js";
 
-const getUniqueExperience = async (req, res, next) => {
+const getFamilyBackground = async (req, res, next) => {
   try {
     const prisma = req.prisma;
     const userId = req.user.userId;
@@ -18,7 +18,7 @@ const getUniqueExperience = async (req, res, next) => {
     }
 
     const data =
-      await UniqueExperienceService.getByProfileId(
+      await FamilyBackgroundService.getByProfileId(
         prisma,
         profile.id
       );
@@ -32,7 +32,7 @@ const getUniqueExperience = async (req, res, next) => {
   }
 };
 
-const saveUniqueExperience = async (req, res, next) => {
+const saveFamilyBackground = async (req, res, next) => {
   try {
     const prisma = req.prisma;
     const userId = req.user.userId;
@@ -49,7 +49,7 @@ const saveUniqueExperience = async (req, res, next) => {
     }
 
     const result =
-      await UniqueExperienceService.upsert(
+      await FamilyBackgroundService.upsert(
         prisma,
         profile.id,
         req.body
@@ -57,7 +57,7 @@ const saveUniqueExperience = async (req, res, next) => {
 
     res.status(StatusCodes.OK).json({
       success: true,
-      message: "Unique experience saved successfully",
+      message: "Family background saved successfully",
       data: result,
     });
   } catch (error) {
@@ -65,7 +65,7 @@ const saveUniqueExperience = async (req, res, next) => {
   }
 };
 
-export const UniqueExperienceController = {
-  getUniqueExperience,
-  saveUniqueExperience,
+export const FamilyBackgroundController = {
+  getFamilyBackground,
+  saveFamilyBackground,
 };
