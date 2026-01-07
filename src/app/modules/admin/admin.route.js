@@ -9,24 +9,24 @@ const router = express.Router();
 
 router.get(
   "/users",
- checkAuthMiddleware(...Object.values(Role.ADMIN, Role.OWNER)),
+ checkAuthMiddleware(Role.ADMIN, Role.OWNER),
   AdminController.getUserInfo
 );
 
 router.patch(
   "/users/:userId/status",
- checkAuthMiddleware(...Object.values(Role.ADMIN, Role.OWNER)),
+ checkAuthMiddleware(Role.ADMIN, Role.OWNER),
   AdminController.updateUserStatus
 );
 
 router.delete(
   "/users/:userId",
- checkAuthMiddleware(...Object.values(Role.ADMIN, Role.OWNER)),
+ checkAuthMiddleware(Role.ADMIN, Role.OWNER),
   AdminController.deleteUser
 );
 
-router.post("/admins",  checkAuthMiddleware(...Object.values(Role.ADMIN, Role.OWNER)), AdminController.createAdmin);
+router.post("/admins",  checkAuthMiddleware(Role.ADMIN, Role.OWNER), AdminController.createAdmin);
 
-router.get("/admins",  checkAuthMiddleware(...Object.values(Role.ADMIN, Role.OWNER)), AdminController.getAdminList);
+router.get("/admins",  checkAuthMiddleware(Role.ADMIN, Role.OWNER), AdminController.getAdminList);
 
 export const AdminRoutes = router;
