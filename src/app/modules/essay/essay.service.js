@@ -1,7 +1,7 @@
 export const EssayService = {
-    // Essay Narrative Methods
-    upsertNarrative: async (prisma, userProfileId, data) => {
-        return await prisma.essayNarrative.upsert({
+    // Essay Specific Questions Methods
+    upsertSpecificQuestions: async (prisma, userProfileId, data) => {
+        return await prisma.essaySpecificQuestions.upsert({
             where: { userProfileId },
             update: data,
             create: {
@@ -11,8 +11,8 @@ export const EssayService = {
         });
     },
 
-    findNarrativeByProfileId: async (prisma, userProfileId) => {
-        return await prisma.essayNarrative.findUnique({
+    findSpecificQuestionsByProfileId: async (prisma, userProfileId) => {
+        return await prisma.essaySpecificQuestions.findUnique({
             where: { userProfileId },
         });
     },

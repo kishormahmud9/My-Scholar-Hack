@@ -1,5 +1,6 @@
+
 import express from "express";
-import { VolunteerController } from "./VolunteerWorkCommunityService.controller.js";
+import { AnythingElseController } from "./anythingElse.controller.js";
 import { Role } from "../../../utils/role.js";
 import { checkAuthMiddleware } from "../../../middleware/checkAuthMiddleware.js";
 
@@ -8,13 +9,13 @@ const router = express.Router();
 router.get(
   "/",
   checkAuthMiddleware(Role.STUDENT),
-  VolunteerController.getVolunteer
+  AnythingElseController.getAnythingElse
 );
 
 router.post(
   "/upsert",
   checkAuthMiddleware(Role.STUDENT),
-  VolunteerController.saveVolunteer
+  AnythingElseController.saveAnythingElse
 );
 
-export const VolunteerRoutes = router;
+export const AnythingElseRoutes = router;

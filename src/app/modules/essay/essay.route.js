@@ -5,17 +5,17 @@ import { checkAuthMiddleware } from "../../middleware/checkAuthMiddleware.js";
 
 const router = express.Router();
 
-// Narrative routes
+// Specific Questions routes (formerly Narrative)
 router.post(
     "/narrative",
     checkAuthMiddleware(...Object.values(Role)),
-    EssayController.upsertNarrative
+    EssayController.upsertSpecificQuestions
 );
 
 router.get(
     "/narrative/:userProfileId",
     checkAuthMiddleware(...Object.values(Role)),
-    EssayController.getNarrative
+    EssayController.getSpecificQuestions
 );
 
 // Individual essay routes

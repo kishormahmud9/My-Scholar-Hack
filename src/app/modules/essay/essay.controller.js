@@ -1,6 +1,6 @@
 import { EssayService } from "./essay.service.js";
 
-const upsertNarrative = async (req, res) => {
+const upsertSpecificQuestions = async (req, res) => {
     try {
         const prisma = req.prisma;
         const userProfileId = req.user?.userProfileId || req.body.userProfileId;
@@ -10,33 +10,33 @@ const upsertNarrative = async (req, res) => {
             return res.status(400).json({ success: false, message: "userProfileId required" });
         }
 
-        const result = await EssayService.upsertNarrative(prisma, userProfileId, data);
+        const result = await EssayService.upsertSpecificQuestions(prisma, userProfileId, data);
 
         return res.json({
             success: true,
-            message: "Essay narrative saved successfully",
+            message: "Essay specific questions saved successfully",
             data: result,
         });
     } catch (error) {
-        console.error("upsertNarrative error:", error);
-        return res.status(500).json({ success: false, message: "Failed to save essay narrative" });
+        console.error("upsertSpecificQuestions error:", error);
+        return res.status(500).json({ success: false, message: "Failed to save essay specific questions" });
     }
 };
 
-const getNarrative = async (req, res) => {
+const getSpecificQuestions = async (req, res) => {
     try {
         const prisma = req.prisma;
         const userProfileId = req.params.userProfileId || req.user?.userProfileId;
 
-        const result = await EssayService.findNarrativeByProfileId(prisma, userProfileId);
+        const result = await EssayService.findSpecificQuestionsByProfileId(prisma, userProfileId);
 
         return res.json({
             success: true,
             data: result,
         });
     } catch (error) {
-        console.error("getNarrative error:", error);
-        return res.status(500).json({ success: false, message: "Failed to fetch essay narrative" });
+        console.error("getSpecificQuestions error:", error);
+        return res.status(500).json({ success: false, message: "Failed to fetch essay specific questions" });
     }
 };
 
@@ -121,8 +121,8 @@ const getEssays = async (req, res) => {
 };
 
 export const EssayController = {
-    upsertNarrative,
-    getNarrative,
+    upsertSpecificQuestions,
+    getSpecificQuestions,
     createEssay,
     updateEssay,
     deleteEssay,

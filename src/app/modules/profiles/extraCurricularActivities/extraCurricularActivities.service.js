@@ -1,26 +1,20 @@
 export const ExtracurricularActivityService = {
-  // GET by profile
-  getByUserProfileId: async (prisma, userProfileId) => {
+  // GET
+  getByProfileId: async (prisma, userProfileId) => {
     return prisma.extracurricularActivity.findUnique({
       where: { userProfileId },
     });
   },
 
-  // CREATE
-  create: async (prisma, userProfileId, data) => {
-    return prisma.extracurricularActivity.create({
-      data: {
+  // CREATE or UPDATE
+  upsert: async (prisma, userProfileId, data) => {
+    return prisma.extracurricularActivity.upsert({
+      where: { userProfileId },
+      update: data,
+      create: {
         userProfileId,
         ...data,
       },
-    });
-  },
-
-  // UPDATE
-  update: async (prisma, userProfileId, data) => {
-    return prisma.extracurricularActivity.update({
-      where: { userProfileId },
-      data,
     });
   },
 };

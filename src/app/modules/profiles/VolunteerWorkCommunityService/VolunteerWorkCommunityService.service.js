@@ -6,21 +6,15 @@ export const VolunteerService = {
     });
   },
 
-  // POST (create)
-  create: async (prisma, userProfileId, data) => {
-    return prisma.volunteerWork.create({
-      data: {
+  // CREATE or UPDATE (UPSERT)
+  upsert: async (prisma, userProfileId, data) => {
+    return prisma.volunteerWork.upsert({
+      where: { userProfileId },
+      update: data,
+      create: {
         userProfileId,
         ...data,
       },
-    });
-  },
-
-  // UPDATE
-  update: async (prisma, userProfileId, data) => {
-    return prisma.volunteerWork.update({
-      where: { userProfileId },
-      data,
     });
   },
 };

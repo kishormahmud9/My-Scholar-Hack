@@ -1,10 +1,7 @@
 import express from "express";
-
-
 import { Role } from "../../../utils/role.js";
 import { AcademicInterestController } from "./academicInterest.controller.js";
 import { checkAuthMiddleware } from "../../../middleware/checkAuthMiddleware.js";
-
 
 const router = express.Router();
 
@@ -15,15 +12,9 @@ router.get(
 );
 
 router.post(
-  "/create",
+  "/upsert",
   checkAuthMiddleware(Role.STUDENT),
-  AcademicInterestController.createAcademicInterest
-);
-
-router.put(
-  "/update",
-  checkAuthMiddleware(Role.STUDENT),
-  AcademicInterestController.updateAcademicInterest
+  AcademicInterestController.saveAcademicInterest
 );
 
 export const AcademicInterestRoutes = router;

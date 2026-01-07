@@ -146,9 +146,15 @@ export const UserService = {
             progress: true,
             familyBackground: true,
             studentIdentity: true,
-            essayNarrative: true,
+            essaySpecificQuestions: true,
             writingPreference: true,
             uniqueExperience: true,
+            basicInformation: true,
+            extraCurricularsActivity: true,
+            volunteerWork: true,
+            diversityIdentity: true,
+            scholarshipSpecificInfo: true,
+            anythingElse: true,
           },
         },
       },
@@ -171,9 +177,15 @@ export const UserService = {
             progress: true,
             familyBackground: true,
             studentIdentity: true,
-            essayNarrative: true,
+            essaySpecificQuestions: true,
             writingPreference: true,
             uniqueExperience: true,
+            basicInformation: true,
+            extraCurricularsActivity: true,
+            volunteerWork: true,
+            diversityIdentity: true,
+            scholarshipSpecificInfo: true,
+            anythingElse: true,
           },
         },
       },
@@ -182,7 +194,7 @@ export const UserService = {
 
 
 export const createUserService = async (payload) => {
-  const { prisma ,email, password, picture, ...rest } = payload;
+  const { prisma, email, password, picture, ...rest } = payload;
 
   if (!email || !password) {
     throw new DevBuildError("Email and password are required", 400);

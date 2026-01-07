@@ -1,7 +1,6 @@
 import { StatusCodes } from "http-status-codes";
 import { VolunteerService } from "./VolunteerWorkcommunityService.service.js";
 
-
 const getVolunteer = async (req, res, next) => {
   try {
     const prisma = req.prisma;
@@ -18,11 +17,10 @@ const getVolunteer = async (req, res, next) => {
       });
     }
 
-    const data =
-      await VolunteerService.getByProfileId(
-        prisma,
-        profile.id
-      );
+    const data = await VolunteerService.getByProfileId(
+      prisma,
+      profile.id
+    );
 
     res.status(StatusCodes.OK).json({
       success: true,
@@ -33,11 +31,16 @@ const getVolunteer = async (req, res, next) => {
   }
 };
 
-const createVolunteer = async (req, res, next) => {
+const saveVolunteer = async (req, res, next) => {
   try {
     const prisma = req.prisma;
     const userId = req.user.userId;
-    const {whatVolunteerWork, organization, totalHours  } = req.body;
+
+    const {
+      whatVolunteerWork,
+      organization,
+      totalHours,
+    } = req.body;
 
     if (!organization || totalHours === undefined) {
       return res.status(StatusCodes.BAD_REQUEST).json({
@@ -57,71 +60,19 @@ const createVolunteer = async (req, res, next) => {
       });
     }
 
-    const existing =
-      await VolunteerService.getByProfileId(
-        prisma,
-        profile.id
-      );
-
-    if (existing) {
-      return res.status(StatusCodes.CONFLICT).json({
-        success: false,
-        message: "Volunteer record already exists",
-      });
-    }
-
-    const data =
-      await VolunteerService.create(
-        prisma,
-        profile.id,
-        {
-          organization,
-          totalHours: Number(totalHours),
-          whatVolunteerWork,
-        }
-      );
-
-    res.status(StatusCodes.CREATED).json({
-      success: true,
-      message: "Volunteer work created successfully",
-      data,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-const updateVolunteer = async (req, res, next) => {
-  try {
-    const prisma = req.prisma;
-    const userId = req.user.userId;
-    const { WhatVolunteerWork, whatVolunteerWork, ...otherData } = req.body;
-    const data = {
-      ...otherData,
-      ...((WhatVolunteerWork || whatVolunteerWork) ? { WhatVolunteerWork: WhatVolunteerWork || whatVolunteerWork } : {})
-    };
-
-    const profile = await prisma.userProfile.findUnique({
-      where: { userId },
-    });
-
-    if (!profile) {
-      return res.status(StatusCodes.NOT_FOUND).json({
-        success: false,
-        message: "User profile not found",
-      });
-    }
-
-    const result =
-      await VolunteerService.update(
-        prisma,
-        profile.id,
-        data
-      );
+    const result = await VolunteerService.upsert(
+      prisma,
+      profile.id,
+      {
+        organization,
+        totalHours: Number(totalHours),
+        whatVolunteerWork,
+      }
+    );
 
     res.status(StatusCodes.OK).json({
       success: true,
-      message: "Volunteer work updated successfully",
+      message: "Volunteer work saved successfully",
       data: result,
     });
   } catch (error) {
@@ -131,6 +82,5 @@ const updateVolunteer = async (req, res, next) => {
 
 export const VolunteerController = {
   getVolunteer,
-  createVolunteer,
-  updateVolunteer,
+  saveVolunteer,
 };

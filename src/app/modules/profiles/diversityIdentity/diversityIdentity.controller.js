@@ -1,7 +1,7 @@
 import { StatusCodes } from "http-status-codes";
-import { AcademicInterestService } from "./academicInterest.service.js";
+import { DiversityIdentityService } from "./diversityIdentity.service.js";
 
-const getAcademicInterest = async (req, res, next) => {
+const getDiversityIdentity = async (req, res, next) => {
   try {
     const prisma = req.prisma;
     const userId = req.user.userId;
@@ -18,7 +18,7 @@ const getAcademicInterest = async (req, res, next) => {
     }
 
     const data =
-      await AcademicInterestService.getByProfileId(
+      await DiversityIdentityService.getByProfileId(
         prisma,
         profile.id
       );
@@ -32,18 +32,10 @@ const getAcademicInterest = async (req, res, next) => {
   }
 };
 
-const saveAcademicInterest = async (req, res, next) => {
+const saveDiversityIdentity = async (req, res, next) => {
   try {
     const prisma = req.prisma;
     const userId = req.user.userId;
-    const { intendedMajor, whyThisField, careerGoals } = req.body;
-
-    if (!intendedMajor || !whyThisField || !careerGoals) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        success: false,
-        message: "All fields are required",
-      });
-    }
 
     const profile = await prisma.userProfile.findUnique({
       where: { userId },
@@ -57,15 +49,15 @@ const saveAcademicInterest = async (req, res, next) => {
     }
 
     const result =
-      await AcademicInterestService.upsert(
+      await DiversityIdentityService.upsert(
         prisma,
         profile.id,
-        { intendedMajor, whyThisField, careerGoals }
+        req.body
       );
 
     res.status(StatusCodes.OK).json({
       success: true,
-      message: "Academic interest saved successfully",
+      message: "Diversity & identity saved successfully",
       data: result,
     });
   } catch (error) {
@@ -73,7 +65,7 @@ const saveAcademicInterest = async (req, res, next) => {
   }
 };
 
-export const AcademicInterestController = {
-  getAcademicInterest,
-  saveAcademicInterest,
+export const DiversityIdentityController = {
+  getDiversityIdentity,
+  saveDiversityIdentity,
 };
