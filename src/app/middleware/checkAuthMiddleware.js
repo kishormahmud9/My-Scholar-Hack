@@ -53,7 +53,7 @@ import prisma from "../prisma/client.js";
  * Role-based Auth Middleware (Prisma)
  * Usage: checkAuth("STUDENT"), checkAuth("ADMIN")
  */
-export const checkAuth =
+export const checkAuthMiddleware =
   (...allowedRoles) =>
     async (req, res, next) => {
       try {

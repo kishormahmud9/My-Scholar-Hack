@@ -1,26 +1,26 @@
 import express from "express";
-import { checkAuth } from "../../../middleware/authMiddleware.js";
 import { ExtracurricularActivityController } from "./extraCurricularActivities.controller.js";
 import { Role } from "../../../utils/role.js";
+import { checkAuthMiddleware } from "../../../middleware/checkAuthMiddleware.js";
 
 
 const router = express.Router();
 
 router.get(
   "/",
-  checkAuth(Role.STUDENT),
+  checkAuthMiddleware(Role.STUDENT),
   ExtracurricularActivityController.getExtracurricularActivity
 );
 
 router.post(
   "/create",
-  checkAuth(Role.STUDENT),
+  checkAuthMiddleware(Role.STUDENT),
   ExtracurricularActivityController.createExtracurricularActivity
 );
 
 router.put(
   "/update",
-  checkAuth(Role.STUDENT),
+  checkAuthMiddleware(Role.STUDENT),
   ExtracurricularActivityController.updateExtracurricularActivity
 );
 
