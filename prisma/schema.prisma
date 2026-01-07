@@ -122,14 +122,15 @@ model UserProfile {
   basicInformation BasicInformation?
   extraCurricularsActivity ExtracurricularActivity?
   volunteerWork  VolunteerWork?
-
+  familyBackground  FamilyBackground?
+  uniqueExperience  UniqueExperience?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
-  familyBackground  FamilyBackground?
+ 
   studentIdentity   StudentIdentity?
   essayNarrative    EssayNarrative?
   writingPreference WritingPreference?
-  uniqueExperience  UniqueExperience?
+
  
 }
 
@@ -189,7 +190,33 @@ model VolunteerWork  {
   @@index([userProfileId])
 }
 
+model FamilyBackground {
+  id            String      @id @default(uuid())
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id])
 
+  firstGenStatus       FirstGenStatus?
+  householdIncomeRange String?
+  householdSize        Int?
+  familySituations     String? // single-parent, immigrant, military, etc.
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UniqueExperience {
+  id            String      @id @default(uuid())
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id])
+
+  hobbies           String?
+  uniqueExperiences String?
+  proudMoment       String?
+  additionalNotes   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 
 model Education {
   id            String      @id @default(uuid())
@@ -375,19 +402,7 @@ model AcademicInterest {
   updatedAt DateTime @updatedAt
 }
 
-model FamilyBackground {
-  id            String      @id @default(uuid())
-  userProfileId String      @unique
-  profile       UserProfile @relation(fields: [userProfileId], references: [id])
 
-  firstGenStatus       FirstGenStatus?
-  householdIncomeRange String?
-  householdSize        Int?
-  familySituations     Json? // single-parent, immigrant, military, etc.
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
 
 model StudentIdentity {
   id            String      @id @default(uuid())
@@ -432,16 +447,4 @@ model WritingPreference {
   updatedAt DateTime @updatedAt
 }
 
-model UniqueExperience {
-  id            String      @id @default(uuid())
-  userProfileId String      @unique
-  profile       UserProfile @relation(fields: [userProfileId], references: [id])
 
-  hobbies           String?
-  uniqueExperiences String?
-  proudMoment       String?
-  additionalNotes   String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}

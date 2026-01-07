@@ -1,14 +1,14 @@
-export const UniqueExperienceService = {
+export const FamilyBackgroundService = {
   // GET
   getByProfileId: async (prisma, userProfileId) => {
-    return prisma.uniqueExperience.findUnique({
+    return prisma.familyBackground.findUnique({
       where: { userProfileId },
     });
   },
 
-  // CREATE or UPDATE
+  // CREATE OR UPDATE (UPSERT)
   upsert: async (prisma, userProfileId, data) => {
-    return prisma.uniqueExperience.upsert({
+    return prisma.familyBackground.upsert({
       where: { userProfileId },
       update: data,
       create: {
