@@ -2,14 +2,27 @@ import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-
+import expressSession from "express-session";
 import errorHandler from "./app/middleware/errorHandler.js";
 import prisma from "./app/prisma/client.js";
 import { router } from "./app/router/index.js";
-
+import passport from "passport";
+import { envVars } from "./app/config/env.js";
+//Must be import after importing passport
+import "./app/config/passport.js";
 dotenv.config();
 
 const app = express();
+
+app.use(
+  expressSession({
+    secret: envVars.EXPRESS_SESSION,
+    resave: false,
+    saveUninitialized: false,
+  })
+);
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Attach prisma to app (optional but useful)
 app.set("prisma", prisma);
@@ -31,7 +44,7 @@ app.use("/api", router);
 
 // Health check
 app.get("/", (req, res) => {
-  res.send("Hello, World!");
+  res.send("<h1>My Scholar Hack API is running...⚡</h1>");
 });
 
 // Error handler (always last)

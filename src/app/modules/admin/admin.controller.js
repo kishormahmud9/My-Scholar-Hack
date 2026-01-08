@@ -21,42 +21,47 @@ export const AdminController = {
         status
       );
 
-      res.json({
-        success: true,
-        message: "User status updated",
-        data: result,
+      return res.status(result.status).json({
+        success: result.success,
+        message: result.message,
       });
     } catch (error) {
-      next(error);
+      next(error); // only unexpected errors reach middleware
     }
   },
 
+  // =========================
+  // DELETE USER
+  // =========================
   deleteUser: async (req, res, next) => {
     try {
       const { userId } = req.params;
 
-      await AdminService.deleteUser(req.prisma, userId);
+      const result = await AdminService.deleteUser(req.prisma, userId);
 
-      res.json({
-        success: true,
-        message: "User deleted successfully",
+      return res.status(result.status).json({
+        success: result.success,
+        message: result.message,
       });
     } catch (error) {
-      next(error);
+      next(error); // only unexpected errors
     }
   },
 
+  // =========================
+  // CREATE ADMIN
+  // =========================
   createAdmin: async (req, res, next) => {
     try {
       const result = await AdminService.createAdmin(req.prisma, req.body);
 
-      res.status(201).json({
-        success: true,
-        message: "Admin created successfully.",
-        data: result,
+      return res.status(result.status).json({
+        success: result.success,
+        message: result.message,
+        data: result.data ?? null,
       });
     } catch (error) {
-      next(error);
+      next(error); // only unexpected errors
     }
   },
 
@@ -67,12 +72,13 @@ export const AdminController = {
     try {
       const result = await AdminService.getAdminList(req.prisma, req.query);
 
-      res.status(200).json({
-        success: true,
-        ...result,
+      return res.status(result.status).json({
+        success: result.success,
+        message: result.message,
+        data: result.data,
       });
     } catch (error) {
-      next(error);
+      next(error); // only unexpected errors
     }
   },
 
@@ -90,8 +96,9 @@ export const AdminController = {
         loggedInAdminId
       );
 
-      res.status(200).json({
-        success: true,
+      res.status(result.status).json({
+        status: result.status,
+        success: result.success,
         message: result.message,
       });
     } catch (error) {
@@ -114,13 +121,13 @@ export const AdminController = {
         req.body
       );
 
-      res.status(200).json({
-        success: true,
-        message: "Admin updated successfully",
-        data: result,
+      return res.status(result.status).json({
+        success: result.success,
+        message: result.message,
+        data: result.data ?? null,
       });
     } catch (error) {
-      next(error);
+      next(error); // only unexpected system errors
     }
   },
 
@@ -147,18 +154,15 @@ export const AdminController = {
     try {
       const { planId } = req.params;
 
-      const updatedPlan = await AdminService.togglePlanStatus(
-        req.prisma,
-        planId
-      );
+      const result = await AdminService.togglePlanStatus(req.prisma, planId);
 
-      res.status(200).json({
-        success: true,
-        message: "Plan status updated successfully",
-        data: updatedPlan,
+      return res.status(result.status).json({
+        success: result.success,
+        message: result.message,
+        data: result.data || null,
       });
     } catch (error) {
-      next(error);
+      next(error); // only real system errors reach here
     }
   },
 
@@ -169,19 +173,19 @@ export const AdminController = {
     try {
       const { planId } = req.params;
 
-      const updatedPlan = await AdminService.updatePlan(
+      const result = await AdminService.updatePlan(
         req.prisma,
         planId,
         req.body
       );
 
-      res.status(200).json({
-        success: true,
-        message: "Plan updated successfully",
-        data: updatedPlan,
+      return res.status(result.status).json({
+        success: result.success,
+        message: result.message,
+        data: result.data || null,
       });
     } catch (error) {
-      next(error);
+      next(error); // only real system errors
     }
   },
 
@@ -194,12 +198,12 @@ export const AdminController = {
 
       const result = await AdminService.deletePlan(req.prisma, planId);
 
-      res.status(200).json({
-        success: true,
+      return res.status(result.status).json({
+        success: result.success,
         message: result.message,
       });
     } catch (error) {
-      next(error);
+      next(error); // only unexpected/system errors
     }
   },
 
@@ -208,15 +212,15 @@ export const AdminController = {
   // =========================
   createPlan: async (req, res, next) => {
     try {
-      const plan = await AdminService.createPlan(req.prisma, req.body);
+      const result = await AdminService.createPlan(req.prisma, req.body);
 
-      res.status(201).json({
-        success: true,
-        message: "Plan created successfully",
-        data: plan,
+      return res.status(result.status).json({
+        success: result.success,
+        message: result.message,
+        data: result.data ?? null,
       });
     } catch (error) {
-      next(error);
+      next(error); // only unexpected/system errors
     }
   },
 
@@ -241,15 +245,15 @@ export const AdminController = {
   // =========================
   createOffer: async (req, res, next) => {
     try {
-      const offer = await AdminService.createOffer(req.prisma, req.body);
+      const result = await AdminService.createOffer(req.prisma, req.body);
 
-      res.status(201).json({
-        success: true,
-        message: "Offer created successfully",
-        data: offer,
+      return res.status(result.status).json({
+        success: result.success,
+        message: result.message,
+        data: result.data ?? null,
       });
     } catch (error) {
-      next(error);
+      next(error); // only unexpected errors
     }
   },
 
@@ -260,15 +264,12 @@ export const AdminController = {
     try {
       const { offerId } = req.params;
 
-      const updatedOffer = await AdminService.toggleOfferStatus(
-        req.prisma,
-        offerId
-      );
+      const result = await AdminService.toggleOfferStatus(req.prisma, offerId);
 
-      res.status(200).json({
-        success: true,
-        message: "Offer status updated",
-        data: updatedOffer,
+      res.status(result.status).json({
+        success: result.success,
+        message: result.message,
+        data: result.data ?? null,
       });
     } catch (error) {
       next(error);
@@ -282,14 +283,14 @@ export const AdminController = {
     try {
       const { offerId } = req.params;
 
-      await AdminService.deleteOffer(req.prisma, offerId);
+      const result = await AdminService.deleteOffer(req.prisma, offerId);
 
-      res.status(200).json({
-        success: true,
-        message: "Offer deleted successfully",
+      res.status(result.status).json({
+        success: result.success,
+        message: result.message,
       });
     } catch (error) {
-      next(error);
+      next(error); // only REAL unexpected errors go here
     }
   },
 
@@ -300,17 +301,95 @@ export const AdminController = {
     try {
       const { offerId } = req.params;
 
-      const updatedOffer = await AdminService.updateOffer(
+      const result = await AdminService.updateOffer(
         req.prisma,
         offerId,
         req.body
       );
 
+      res.status(result.status).json({
+        success: result.success,
+        message: result.message,
+        data: result.data,
+      });
+    } catch (error) {
+      next(error); // only unexpected errors
+    }
+  },
+
+  // =========================
+  // CREATE FAQ
+  // =========================
+  createFaq: async (req, res, next) => {
+    try {
+      const result = await AdminService.createFaq(req.prisma, req.body);
+
+      res.status(result.status).json({
+        success: result.success,
+        message: result.message,
+        data: result.data,
+      });
+    } catch (error) {
+      next(error); // unexpected/system errors only
+    }
+  },
+
+  // =========================
+  // UPDATE FAQ
+  // =========================
+  updateFaq: async (req, res, next) => {
+    try {
+      const { faqId } = req.params;
+
+      const result = await AdminService.updateFaq(req.prisma, faqId, req.body);
+
+      res.status(result.status).json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // =========================
+  // DELETE FAQ
+  // =========================
+  deleteFaq: async (req, res, next) => {
+    try {
+      const { faqId } = req.params;
+
+      const result = await AdminService.deleteFaq(req.prisma, faqId);
+
+      res.status(result.status).json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // =========================
+  // GET ALL FAQ (ADMIN)
+  // =========================
+  getAllFaqs: async (req, res, next) => {
+    try {
+      const faqs = await AdminService.getAllFaqs(req.prisma);
+
       res.status(200).json({
         success: true,
-        message: "Offer updated successfully",
-        data: updatedOffer,
+        data: faqs,
       });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // =========================
+  // GET FAQ BY CATEGORY (ADMIN)
+  // =========================
+  getFaqsByCategory: async (req, res, next) => {
+    try {
+      const { category } = req.query;
+
+      const result = await AdminService.getFaqsByCategory(req.prisma, category);
+
+      res.status(result.status).json(result);
     } catch (error) {
       next(error);
     }

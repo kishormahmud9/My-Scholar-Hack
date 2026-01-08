@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 import { Pool } from "pg";
-import { envVars } from "./env";
+import { envVars } from "./env.js";
 
 dotenv.config();
 

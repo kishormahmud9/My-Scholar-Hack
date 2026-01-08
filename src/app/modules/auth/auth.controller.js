@@ -1,53 +1,60 @@
 import DevBuildError from "../../lib/DevBuildError.js";
-import { AuthService } from "./auth.service.js";
-import bcrypt from "bcrypt";
+import { AuthService, forgotPasswordService } from "./auth.service.js";
 import jwt from "jsonwebtoken";
 import { envVars } from "../../config/env.js";
 import { createUserTokens } from "../../utils/userTokenGenerator.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 import { setAuthCookie } from "../../utils/setCookie.js";
 import { StatusCodes } from "http-status-codes";
+import passport from "passport";
 
-// ✅ Login User
-const loginUser = async (req, res, next) => {
+
+const credentialLogin = async (req, res, next) => {
   try {
-    const prisma = req.app.get("prisma");
-    const { email, password } = req.body;
+    passport.authenticate("local", async (err, user, info) => {
+      try {
+        if (err) {
+          return next(
+            new DevBuildError(err, StatusCodes.UNAUTHORIZED)
+          );
+        }
 
-    if (!password) throw new DevBuildError("Password required", 400);
+        if (!user) {
+          return next(
+            new DevBuildError(
+              info?.message || "Authentication failed",
+              StatusCodes.UNAUTHORIZED
+            )
+          );
+        }
 
-    // ✅ Fetch user from DB
-    const user = await AuthService.findByEmail(prisma, email);
-    if (!user) throw new DevBuildError("User not found", 400);
+        // Generate access & refresh tokens
+        const userToken = await createUserTokens(user);
 
-    console.log(user);
+        // Remove sensitive fields before sending user
+        const {
+          passwordHash,
+          ...saveUser
+        } = user;
 
-    // ✅ Password Matching (use stored passwordHash)
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) {
-      throw new DevBuildError("Invalid credentials", 400);
-    }
+        // Set cookies
+        setAuthCookie(res, userToken);
 
-    // // ✅ Check if user is verified
-    // if (!user.isVerified) {
-    //   throw new DevBuildError(
-    //     "User is not verified. Please verify your email.",
-    //     403
-    //   );
-    // }
-
-    // ✅ Generate Tokens
-    const userToken = createUserTokens(user);
-    setAuthCookie(res, userToken);
-    sendResponse(res, {
-      success: true,
-      message: "User logged in Successful",
-      statusCode: StatusCodes.OK,
-      data: {
-        accessToken: userToken.accessToken,
-        refreshToken: userToken.refreshToken,
-      },
-    });
+        // Send response
+        sendResponse(res, {
+          success: true,
+          message: "User logged in successfully",
+          statusCode: StatusCodes.OK,
+          data: {
+            accessToken: userToken.accessToken,
+            refreshToken: userToken.refreshToken,
+            user: saveUser,
+          },
+        });
+      } catch (innerError) {
+        next(innerError);
+      }
+    })(req, res, next);
   } catch (error) {
     next(error);
   }
@@ -69,7 +76,10 @@ const getNewAccessToken = async (req, res, next) => {
 
     let decoded;
     try {
-      decoded = jwt.verify(refreshToken, envVars.JWT_REFRESH_TOKEN);
+      decoded = jwt.verify(
+        refreshToken,
+        envVars.JWT_REFRESH_TOKEN
+      );
     } catch (err) {
       throw new DevBuildError("Invalid refresh token", StatusCodes.FORBIDDEN);
     }
@@ -135,4 +145,97 @@ const logout = async (req, res, next) => {
     next(error);
   }
 };
-export const AuthController = { loginUser, getNewAccessToken, logout };
+
+const forgotPassword = async (req, res, next) => {
+  try {
+    const prisma = req.app.get("prisma");
+    const { email } = req.body;
+
+    if (!email) {
+      return sendResponse(res, {
+        success: false,
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: "Email is required",
+        data: null,
+      });
+    }
+
+    await forgotPasswordService(prisma, email);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "Password reset email sent successfully",
+      data: null,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const decodedToken = req.user;
+    const { newPassword } = req.body;
+    const id = req.body.id || req.query.id;
+
+    if (!newPassword || !id) {
+      const missing = [];
+      if (!newPassword) missing.push("newPassword (in body)");
+      if (!id) missing.push("id (in body or query)");
+
+      return sendResponse(res, {
+        success: false,
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: `Missing required fields: ${missing.join(", ")}`,
+        data: null,
+      });
+    }
+
+    const payload = { id, newPassword };
+
+    await AuthService.resetPassword(payload, decodedToken);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "Password reset successfully",
+      data: null,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+
+const googleCallback = async (req, res, next) => {
+  try {
+    let redirectTo = req.query.state ? String(req.query.state) : "";
+
+    // Prevent open redirect issues
+    if (redirectTo.startsWith("/")) {
+      redirectTo = redirectTo.slice(1);
+    }
+
+    const user = req.user; // comes from Passport Google Strategy
+
+    if (!user) {
+      throw new DevBuildError("User not found", StatusCodes.NOT_FOUND);
+    }
+
+    // Generate tokens
+    const tokenInfo = await createUserTokens(user);
+
+    // Set auth cookies
+    setAuthCookie(res, tokenInfo);
+
+    // Redirect to frontend
+    res.redirect(`${envVars.FRONT_END_URL}/${redirectTo}`);
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+export const AuthController = { credentialLogin, getNewAccessToken, logout, forgotPassword, resetPassword, googleCallback };

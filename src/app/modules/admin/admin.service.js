@@ -1,11 +1,7 @@
 import bcrypt from "bcrypt";
-import crypto from "crypto";
-import { name } from "ejs";
+import { success } from "zod";
 
 export const AdminService = {
-  // =========================
-  // GET USER INFO
-  // =========================
   getUserInfo: async (prisma, query) => {
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 10;
@@ -14,14 +10,17 @@ export const AdminService = {
     const [users, total] = await Promise.all([
       prisma.user.findMany({
         where: {
-          role: "student",
+          role: "STUDENT", // ✅ FIXED (enum)
+          isDeleted: false, // ✅ IMPORTANT
         },
         skip,
         take: limit,
         orderBy: { createdAt: "desc" },
         include: {
           profile: {
-            select: { firstName: true },
+            select: {
+              fullName: true, // ✅ FIXED (schema field)
+            },
           },
           essays: {
             select: { id: true },
@@ -31,7 +30,9 @@ export const AdminService = {
             take: 1,
             include: {
               plan: {
-                select: { name: true },
+                select: {
+                  name: true, // ✅ FIXED (schema field)
+                },
               },
             },
           },
@@ -40,7 +41,8 @@ export const AdminService = {
 
       prisma.user.count({
         where: {
-          role: "student",
+          role: "STUDENT", // ✅ FIXED
+          isDeleted: false,
         },
       }),
     ]);
@@ -51,11 +53,11 @@ export const AdminService = {
       return {
         no: skip + index + 1,
         id: user.id,
-        name: user.profile?.firstName || user.name,
+        name: user.profile?.fullName || user.name,
         email: user.email,
         totalEssays: user.essays.length,
-        subscriptionPlan: latestSubscription?.plan?.internalName || "Free",
-        status: latestSubscription ? "active" : "inactive",
+        subscriptionPlan: latestSubscription?.plan?.name || "Free",
+        status: latestSubscription ? "ACTIVE" : "INACTIVE",
       };
     });
 
@@ -70,15 +72,34 @@ export const AdminService = {
   },
 
   // =========================
-  // UPDATE USER STATUS
+  // UPDATE USER STATUS (SAFE)
   // =========================
   updateUserStatus: async (prisma, userId, status) => {
-    const allowedStatus = ["active", "inactive"];
+    const allowedStatus = ["ACTIVE", "INACTIVE"];
 
+    // 1️⃣ Validate status
     if (!allowedStatus.includes(status)) {
-      throw new Error("Invalid status. Allowed: active, inactive");
+      return {
+        success: false,
+        status: 400,
+        message: "Invalid status. Allowed: ACTIVE, INACTIVE",
+      };
     }
 
+    // 2️⃣ Check user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user || user.isDeleted) {
+      return {
+        success: false,
+        status: 404,
+        message: "User not found",
+      };
+    }
+
+    // 3️⃣ Get latest subscription
     const latestSubscription = await prisma.subscription.findFirst({
       where: { userId },
       orderBy: { createdAt: "desc" },
@@ -87,107 +108,168 @@ export const AdminService = {
     // =========================
     // SET INACTIVE
     // =========================
-    if (status === "inactive") {
+    if (status === "INACTIVE") {
       if (!latestSubscription) {
-        return { message: "User already inactive" };
+        return {
+          success: true,
+          status: 200,
+          message: "User is already inactive",
+        };
       }
 
       await prisma.subscription.delete({
         where: { id: latestSubscription.id },
       });
 
-      return { message: "User deactivated successfully" };
+      return {
+        success: true,
+        status: 200,
+        message: "User deactivated successfully",
+      };
     }
 
     // =========================
     // SET ACTIVE
     // =========================
     if (latestSubscription) {
-      return { message: "User already active" };
+      return {
+        success: true,
+        status: 200,
+        message: "User is already active",
+      };
     }
 
-    // 🔑 FIND ANY EXISTING PLAN (NO ASSUMPTION)
+    // 4️⃣ Find cheapest active plan
     const plan = await prisma.plan.findFirst({
-      orderBy: { monthlyPrice: "asc" }, // cheapest plan
+      where: { isActive: true },
+      orderBy: { monthlyPrice: "asc" },
     });
 
     if (!plan) {
-      throw new Error("No plan exists. Admin must create a plan first.");
+      return {
+        success: false,
+        status: 409,
+        message: "No active plan exists. Please create a plan first.",
+      };
     }
 
-    return prisma.subscription.create({
+    await prisma.subscription.create({
       data: {
-        status: "active",
-        user: {
-          connect: { id: userId },
-        },
-        plan: {
-          connect: { id: plan.id },
-        },
+        status: "active", // enum value
+        user: { connect: { id: userId } },
+        plan: { connect: { id: plan.id } },
       },
     });
+
+    return {
+      success: true,
+      status: 200,
+      message: "User activated successfully",
+    };
   },
 
   // =========================
-  // DELETE USER (HARD DELETE)
+  // DELETE USER (SOFT DELETE - SAFE)
   // =========================
   deleteUser: async (prisma, userId) => {
-    return prisma.$transaction([
-      prisma.notification.deleteMany({ where: { userId } }),
-      prisma.essay.deleteMany({ where: { userId } }),
-      prisma.subscription.deleteMany({ where: { userId } }),
-      prisma.application.deleteMany({ where: { userId } }),
-      prisma.userProfile.deleteMany({ where: { userId } }),
-      prisma.user.delete({ where: { id: userId } }),
-    ]);
+    // 1️⃣ Check user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user || user.isDeleted) {
+      return {
+        success: false,
+        status: 404,
+        message: "User not found",
+      };
+    }
+
+    // 2️⃣ Soft delete user
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        isDeleted: true,
+        status: "INACTIVE",
+      },
+    });
+
+    // 3️⃣ Cleanup related active data (optional but good)
+    await prisma.subscription.deleteMany({
+      where: { userId },
+    });
+
+    return {
+      success: true,
+      status: 200,
+      message: "User deleted successfully",
+    };
   },
 
   // =========================
-  // CREATE ADMIN
+  // CREATE ADMIN (SAFE VERSION)
   // =========================
   createAdmin: async (prisma, data) => {
     const { name, email, number } = data;
 
-    // 1️⃣ Check existing user
+    // 1️⃣ Required validation
+    if (!email) {
+      return {
+        success: false,
+        status: 400,
+        message: "Email is required",
+      };
+    }
+
+    // 2️⃣ Check existing user
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
 
     if (existingUser) {
-      throw new Error("User with this email already exists");
+      return {
+        success: false,
+        status: 409,
+        message: "User with this email already exists",
+      };
     }
 
-    // 2️⃣ FIXED DEFAULT PASSWORD
-    const defaultPassword = "Admin@123";
+    // 3️⃣ Fixed default password
+    const defaultPassword = "admin@123";
     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
-    // 3️⃣ Create admin user
+    // 4️⃣ Create admin
     const admin = await prisma.user.create({
       data: {
         name,
         email,
         passwordHash: hashedPassword,
-        role: "admin",
+        role: "ADMIN", // enum-safe
         profile: {
           create: {
-            firstName: name,
-            bio: number ? `Phone: ${number}` : null, // safe without schema change
+            fullName: name || "Admin",
+            bio: number ? `Phone: ${number}` : null,
           },
         },
       },
     });
 
     return {
-      id: admin.id,
-      name: admin.name,
-      email: admin.email,
-      role: admin.role,
-      defaultPassword, // show once or send by email later
+      success: true,
+      status: 201,
+      message: "Admin created successfully",
+      data: {
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        role: admin.role,
+        defaultPassword, // show once
+      },
     };
   },
 
   // =========================
-  // GET ADMIN LIST (ONLY ADMINS)
+  // GET ADMIN LIST (SAFE)
   // =========================
   getAdminList: async (prisma, query) => {
     const page = Number(query.page) || 1;
@@ -197,17 +279,16 @@ export const AdminService = {
     const [admins, total] = await Promise.all([
       prisma.user.findMany({
         where: {
-          role: "admin", // 🔑 ONLY ADMINS
+          role: "ADMIN",
+          isDeleted: false,
         },
         skip,
         take: limit,
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: { createdAt: "desc" },
         include: {
           profile: {
             select: {
-              bio: true, // using bio to store phone temporarily
+              bio: true,
             },
           },
         },
@@ -215,7 +296,8 @@ export const AdminService = {
 
       prisma.user.count({
         where: {
-          role: "admin", // 🔑 ONLY ADMINS
+          role: "ADMIN",
+          isDeleted: false,
         },
       }),
     ]);
@@ -231,12 +313,17 @@ export const AdminService = {
     }));
 
     return {
-      meta: {
-        total,
-        page,
-        limit,
+      success: true,
+      status: 200,
+      message: "Admin list fetched successfully",
+      data: {
+        meta: {
+          total,
+          page,
+          limit,
+        },
+        admins: formattedAdmins,
       },
-      admins: formattedAdmins,
     };
   },
 
@@ -246,7 +333,11 @@ export const AdminService = {
   deleteAdmin: async (prisma, adminId, loggedInAdminId) => {
     // 1️⃣ Prevent self-delete
     if (adminId === loggedInAdminId) {
-      throw new Error("You cannot delete your own admin account");
+      return {
+        success: false,
+        status: 400,
+        message: "You cannot delete your own admin account",
+      };
     }
 
     // 2️⃣ Check target user exists and is admin
@@ -254,21 +345,29 @@ export const AdminService = {
       where: { id: adminId },
     });
 
-    if (!targetAdmin || targetAdmin.role !== "admin") {
-      throw new Error("Admin not found");
+    if (!targetAdmin || targetAdmin.role !== "ADMIN") {
+      return {
+        success: false,
+        status: 404,
+        message: "Admin not found",
+      };
     }
 
     // 3️⃣ Count total admins
     const adminCount = await prisma.user.count({
-      where: { role: "admin" },
+      where: { role: "ADMIN" },
     });
 
     // 4️⃣ Prevent deleting last admin
     if (adminCount <= 1) {
-      throw new Error("Cannot delete the last admin");
+      return {
+        success: false,
+        status: 400,
+        message: "Cannot delete the last remaining admin",
+      };
     }
 
-    // 5️⃣ Delete admin safely (clean related data)
+    // 5️⃣ Delete admin safely
     await prisma.$transaction([
       prisma.notification.deleteMany({ where: { userId: adminId } }),
       prisma.subscription.deleteMany({ where: { userId: adminId } }),
@@ -278,18 +377,26 @@ export const AdminService = {
       prisma.user.delete({ where: { id: adminId } }),
     ]);
 
-    return { message: "Admin deleted successfully" };
+    return {
+      success: true,
+      status: 200,
+      message: "Admin deleted successfully",
+    };
   },
 
   // =========================
-  // UPDATE ADMIN
+  // UPDATE ADMIN (SAFE)
   // =========================
   updateAdmin: async (prisma, adminId, loggedInAdminId, data) => {
     const { name, email, number } = data;
 
-    // 1️⃣ Prevent self edit (optional but good)
+    // 1️⃣ Prevent self edit
     if (adminId === loggedInAdminId) {
-      throw new Error("You cannot edit your own admin account");
+      return {
+        success: false,
+        status: 400,
+        message: "You cannot edit your own admin account",
+      };
     }
 
     // 2️⃣ Check admin exists
@@ -298,8 +405,12 @@ export const AdminService = {
       include: { profile: true },
     });
 
-    if (!admin || admin.role !== "admin") {
-      throw new Error("Admin not found");
+    if (!admin || admin.role !== "ADMIN") {
+      return {
+        success: false,
+        status: 404,
+        message: "Admin not found",
+      };
     }
 
     // 3️⃣ Email uniqueness check
@@ -309,11 +420,15 @@ export const AdminService = {
       });
 
       if (emailExists) {
-        throw new Error("Email already in use");
+        return {
+          success: false,
+          status: 409,
+          message: "Email already in use",
+        };
       }
     }
 
-    // 4️⃣ Update admin + profile
+    // 4️⃣ Update admin + profile (schema-safe)
     const updatedAdmin = await prisma.user.update({
       where: { id: adminId },
       data: {
@@ -322,11 +437,11 @@ export const AdminService = {
         profile: {
           upsert: {
             create: {
-              firstName: name ?? admin.name,
+              fullName: name ?? admin.name,
               bio: number ? `Phone: ${number}` : null,
             },
             update: {
-              firstName: name ?? admin.name,
+              fullName: name ?? admin.profile?.fullName ?? admin.name,
               bio: number ? `Phone: ${number}` : admin.profile?.bio,
             },
           },
@@ -335,9 +450,14 @@ export const AdminService = {
     });
 
     return {
-      id: updatedAdmin.id,
-      name: updatedAdmin.name,
-      email: updatedAdmin.email,
+      success: true,
+      status: 200,
+      message: "Admin updated successfully",
+      data: {
+        id: updatedAdmin.id,
+        name: updatedAdmin.name,
+        email: updatedAdmin.email,
+      },
     };
   },
 
@@ -353,29 +473,7 @@ export const AdminService = {
   },
 
   // =========================
-  // TOGGLE PLAN ACTIVE / INACTIVE
-  // =========================
-  togglePlanStatus: async (prisma, planId) => {
-    const plan = await prisma.plan.findUnique({
-      where: { id: planId },
-    });
-
-    if (!plan) {
-      throw new Error("Plan not found");
-    }
-
-    const updatedPlan = await prisma.plan.update({
-      where: { id: planId },
-      data: {
-        isActive: !plan.isActive,
-      },
-    });
-
-    return updatedPlan;
-  },
-
-  // =========================
-  // UPDATE PLAN (EDIT PLAN)
+  // UPDATE PLAN (EDIT PLAN) — SAFE
   // =========================
   updatePlan: async (prisma, planId, data) => {
     const {
@@ -393,7 +491,11 @@ export const AdminService = {
     });
 
     if (!plan) {
-      throw new Error("Plan not found");
+      return {
+        success: false,
+        status: 404,
+        message: "Plan not found",
+      };
     }
 
     // 2️⃣ If name is changing, ensure uniqueness
@@ -403,12 +505,16 @@ export const AdminService = {
       });
 
       if (nameExists) {
-        throw new Error("Plan name already exists");
+        return {
+          success: false,
+          status: 400,
+          message: "Plan name already exists",
+        };
       }
     }
 
     // 3️⃣ Update plan
-    return prisma.plan.update({
+    const updatedPlan = await prisma.plan.update({
       where: { id: planId },
       data: {
         name: name ?? plan.name,
@@ -419,13 +525,20 @@ export const AdminService = {
         sortOrder: sortOrder ?? plan.sortOrder,
       },
     });
+
+    return {
+      success: true,
+      status: 200,
+      message: "Plan updated successfully",
+      data: updatedPlan,
+    };
   },
 
   // =========================
   // DELETE PLAN (SAFE)
   // =========================
   deletePlan: async (prisma, planId) => {
-    //  Check plan exists
+    // 1️⃣ Check plan exists
     const plan = await prisma.plan.findUnique({
       where: { id: planId },
       include: {
@@ -434,26 +547,37 @@ export const AdminService = {
     });
 
     if (!plan) {
-      throw new Error("Plan not found");
+      return {
+        success: false,
+        status: 404,
+        message: "Plan not found",
+      };
     }
 
-    // Prevent delete if plan is in use
+    // 2️⃣ Prevent delete if plan is in use
     if (plan.subscriptions.length > 0) {
-      throw new Error(
-        "Cannot delete plan. There are active subscriptions using this plan."
-      );
+      return {
+        success: false,
+        status: 400,
+        message:
+          "Cannot delete plan. There are active subscriptions using this plan.",
+      };
     }
 
-    // Delete plan
+    // 3️⃣ Delete plan
     await prisma.plan.delete({
       where: { id: planId },
     });
 
-    return { message: "Plan deleted successfully" };
+    return {
+      success: true,
+      status: 200,
+      message: "Plan deleted successfully",
+    };
   },
 
   // =========================
-  // CREATE PLAN
+  // CREATE PLAN (SAFE)
   // =========================
   createPlan: async (prisma, data) => {
     const {
@@ -468,7 +592,11 @@ export const AdminService = {
 
     // 1️⃣ Validate required fields
     if (!name || monthlyPrice == null || yearlyPrice == null) {
-      throw new Error("Name, monthlyPrice and yearlyPrice are required");
+      return {
+        success: false,
+        status: 400,
+        message: "Name, monthlyPrice and yearlyPrice are required",
+      };
     }
 
     // 2️⃣ Check unique plan name
@@ -477,11 +605,15 @@ export const AdminService = {
     });
 
     if (existingPlan) {
-      throw new Error("Plan with this name already exists");
+      return {
+        success: false,
+        status: 409,
+        message: "Plan with this name already exists",
+      };
     }
 
-    // Create plan
-    return prisma.plan.create({
+    // 3️⃣ Create plan
+    const plan = await prisma.plan.create({
       data: {
         name,
         description,
@@ -492,6 +624,13 @@ export const AdminService = {
         sortOrder,
       },
     });
+
+    return {
+      success: true,
+      status: 201,
+      message: "Plan created successfully",
+      data: plan,
+    };
   },
 
   // =========================
@@ -522,73 +661,120 @@ export const AdminService = {
   },
 
   // =========================
-  // CREATE OFFER
+  // Create OFFERS (ADMIN)
   // =========================
   createOffer: async (prisma, data) => {
     const { title, description, ctaText, discountValue, startDate, endDate } =
       data;
 
-    // 🔐 Required field validation
-    if (
-      !title ||
-      discountValue === undefined ||
-      discountValue === null ||
-      !startDate ||
-      !endDate
-    ) {
-      throw new Error(
-        "title, discountValue, startDate, and endDate are required"
-      );
+    // 1️⃣ Required fields
+    if (!title || discountValue == null || !startDate || !endDate) {
+      return {
+        success: false,
+        status: 400,
+        message: "title, discountValue, startDate, and endDate are required",
+      };
     }
 
-    // 🔐 Discount validation
+    // 2️⃣ Discount validation
     if (discountValue <= 0 || discountValue > 100) {
-      throw new Error("discountValue must be between 1 and 100");
+      return {
+        success: false,
+        status: 400,
+        message: "discountValue must be between 1 and 100",
+      };
     }
 
-    // 🔐 Date validation
+    // 3️⃣ Date validation
     if (new Date(startDate) >= new Date(endDate)) {
-      throw new Error("Start date must be before end date");
+      return {
+        success: false,
+        status: 400,
+        message: "Start date must be before end date",
+      };
     }
 
-    return prisma.offer.create({
+    // 🔐 NO DUPLICATE TITLES (active or inactive)
+    const existingOffer = await prisma.offer.findFirst({
+      where: { title },
+    });
+
+    if (existingOffer) {
+      return {
+        success: false,
+        status: 409,
+        message: "Offer with this title already exists",
+      };
+    }
+
+    // 🔥 ONLY ONE ACTIVE OFFER AT A TIME
+    await prisma.offer.updateMany({
+      where: { isActive: true },
+      data: { isActive: false },
+    });
+
+    // 4️⃣ Create new ACTIVE offer
+    const offer = await prisma.offer.create({
       data: {
         title,
         description,
         ctaText,
-
-        // 🔒 Enforced by backend
         discountType: "PERCENT",
         discountValue,
-
         startDate: new Date(startDate),
         endDate: new Date(endDate),
-
         isActive: true,
       },
     });
+
+    return {
+      success: true,
+      status: 201,
+      message: "Offer created and activated successfully",
+      data: offer,
+    };
   },
 
   // =========================
   // TOGGLE OFFER STATUS
   // =========================
   toggleOfferStatus: async (prisma, offerId) => {
-    // 1️⃣ Find existing offer
     const offer = await prisma.offer.findUnique({
       where: { id: offerId },
     });
 
     if (!offer) {
-      throw new Error("Offer not found");
+      return {
+        success: false,
+        status: 404,
+        message: "Offer not found",
+      };
     }
 
-    // 2️⃣ Toggle isActive
-    return prisma.offer.update({
+    // 🔥 If activating → deactivate all others
+    if (!offer.isActive) {
+      await prisma.offer.updateMany({
+        where: {
+          isActive: true,
+          NOT: { id: offer.id },
+        },
+        data: { isActive: false },
+      });
+    }
+
+    const updatedOffer = await prisma.offer.update({
       where: { id: offerId },
       data: {
         isActive: !offer.isActive,
       },
     });
+
+    return {
+      success: true,
+      status: 200,
+      message: "Offer status updated",
+      data: updatedOffer,
+    };
   },
 
   // =========================
@@ -600,12 +786,22 @@ export const AdminService = {
     });
 
     if (!offer) {
-      throw new Error("Offer not found");
+      return {
+        success: false,
+        status: 404,
+        message: "Offer not found",
+      };
     }
 
-    return prisma.offer.delete({
+    await prisma.offer.delete({
       where: { id: offerId },
     });
+
+    return {
+      success: true,
+      status: 200,
+      message: "Offer deleted successfully",
+    };
   },
 
   // =========================
@@ -628,25 +824,69 @@ export const AdminService = {
     });
 
     if (!offer) {
-      throw new Error("Offer not found");
+      return {
+        success: false,
+        status: 404,
+        message: "Offer not found",
+      };
     }
 
-    // 2️⃣ Validate discount (if provided)
+    // 2️⃣ Title uniqueness (GLOBAL – no duplicates)
+    if (title && title !== offer.title) {
+      const existingTitle = await prisma.offer.findFirst({
+        where: {
+          title,
+          NOT: { id: offerId },
+        },
+      });
+
+      if (existingTitle) {
+        return {
+          success: false,
+          status: 409,
+          message: "Offer with this title already exists",
+        };
+      }
+    }
+
+    // 3️⃣ Discount validation
     if (discountValue !== undefined) {
       if (discountValue <= 0 || discountValue > 100) {
-        throw new Error("discountValue must be between 1 and 100");
+        return {
+          success: false,
+          status: 400,
+          message: "discountValue must be between 1 and 100",
+        };
       }
     }
 
-    // 3️⃣ Validate dates (if both provided)
+    // 4️⃣ Date validation
     if (startDate && endDate) {
       if (new Date(startDate) >= new Date(endDate)) {
-        throw new Error("Start date must be before end date");
+        return {
+          success: false,
+          status: 400,
+          message: "Start date must be before end date",
+        };
       }
     }
 
-    // 4️⃣ Update offer
-    return prisma.offer.update({
+    // 5️⃣ SINGLE ACTIVE OFFER RULE
+    if (isActive === true && offer.isActive === false) {
+      // deactivate all other offers
+      await prisma.offer.updateMany({
+        where: {
+          isActive: true,
+          NOT: { id: offerId },
+        },
+        data: {
+          isActive: false,
+        },
+      });
+    }
+
+    // 6️⃣ Update offer
+    const updatedOffer = await prisma.offer.update({
       where: { id: offerId },
       data: {
         title: title ?? offer.title,
@@ -659,5 +899,162 @@ export const AdminService = {
         isActive: typeof isActive === "boolean" ? isActive : offer.isActive,
       },
     });
+
+    return {
+      success: true,
+      status: 200,
+      message: "Offer updated successfully",
+      data: updatedOffer,
+    };
+  },
+
+  // =========================
+  // CREATE FAQ
+  // =========================
+  createFaq: async (prisma, data) => {
+    const { category, question, answer, sortOrder = 0 } = data;
+
+    // 1️⃣ Validation
+    if (!category || !question || !answer) {
+      return {
+        success: false,
+        status: 400,
+        message: "category, question, and answer are required",
+      };
+    }
+
+    // 2️⃣ Create FAQ
+    const faq = await prisma.faq.create({
+      data: {
+        category,
+        question,
+        answer,
+        sortOrder,
+        isActive: true,
+      },
+    });
+
+    return {
+      success: true,
+      status: 201,
+      message: "FAQ created successfully",
+      data: faq,
+    };
+  },
+
+  // =========================
+  // UPDATE FAQ
+  // =========================
+  updateFaq: async (prisma, faqId, data) => {
+    const { question, answer, sortOrder } = data;
+
+    // 1️⃣ Check FAQ exists
+    const faq = await prisma.faq.findUnique({
+      where: { id: faqId },
+    });
+
+    if (!faq) {
+      return {
+        success: false,
+        status: 404,
+        message: "FAQ not found",
+      };
+    }
+
+    // 2️⃣ Validation
+    if (!question && !answer && sortOrder === undefined) {
+      return {
+        success: false,
+        status: 400,
+        message: "Nothing to update",
+      };
+    }
+
+    // 3️⃣ Update FAQ
+    const updatedFaq = await prisma.faq.update({
+      where: { id: faqId },
+      data: {
+        question: question ?? faq.question,
+        answer: answer ?? faq.answer,
+        sortOrder: sortOrder !== undefined ? sortOrder : faq.sortOrder,
+      },
+    });
+
+    return {
+      success: true,
+      status: 200,
+      message: "FAQ updated successfully",
+      data: updatedFaq,
+    };
+  },
+
+  // =========================
+  // DELETE FAQ
+  // =========================
+  deleteFaq: async (prisma, faqId) => {
+    // 1️⃣ Check FAQ exists
+    const faq = await prisma.faq.findUnique({
+      where: { id: faqId },
+    });
+
+    if (!faq) {
+      return {
+        success: false,
+        status: 404,
+        message: "FAQ not found",
+      };
+    }
+
+    // 2️⃣ Delete FAQ
+    await prisma.faq.delete({
+      where: { id: faqId },
+    });
+
+    return {
+      success: true,
+      status: 200,
+      message: "FAQ deleted successfully",
+    };
+  },
+
+  // =========================
+  // GET ALL FAQ (ADMIN)
+  // =========================
+  getAllFaqs: async (prisma) => {
+    return prisma.faq.findMany({
+      orderBy: [
+        { category: "asc" },
+        { sortOrder: "asc" },
+        { createdAt: "desc" },
+      ],
+    });
+  },
+
+  // =========================
+  // GET FAQ BY CATEGORY (ADMIN)
+  // =========================
+  getFaqsByCategory: async (prisma, category) => {
+    // 1️⃣ Validation
+    if (!category) {
+      return {
+        success: false,
+        status: 400,
+        message: "Category is required",
+      };
+    }
+
+    // 2️⃣ Fetch FAQs
+    const faqs = await prisma.faq.findMany({
+      where: {
+        category,
+      },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+    });
+
+    return {
+      success: true,
+      status: 200,
+      data: faqs,
+    };
   },
 };

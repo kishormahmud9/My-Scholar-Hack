@@ -7,20 +7,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-enum UserRole {
-  student
-  admin
-  mentor
-  business
-}
-
-enum OAuthProvider {
-  email
-  google
-  facebook
-  apple
-}
-
 enum ApplicationStatus {
   not_started
   in_progress
@@ -49,18 +35,43 @@ enum ScholarshipDeadlineTimeline {
   LESS_THAN_ONE_MONTH
 }
 
+enum UserRole {
+  STUDENT
+  ADMIN
+  OWNER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum AuthProviderType {
+  EMAIL
+  GOOGLE
+}
+
+enum SchoolType {
+  HIGH_SCHOOL
+  COLLEGE
+  UNIVERSITY
+  OTHER
+}
 model User {
-  id           String   @id @default(uuid())
-  name         String
-  email        String   @unique 
+  id           String  @id @default(cuid())
+  email        String  @unique
+  name         String?
   passwordHash String?
-  avatarUrl    String?
-  role         UserRole @default(student)
+  phoneNumber  String?
+  picture      String?
 
-  isVerified    Boolean   @default(false)
+  role       UserRole   @default(STUDENT)
+  status     UserStatus @default(ACTIVE)
+  isVerified Boolean    @default(false)
+  isDeleted  Boolean    @default(false)
 
-  oauthProvider   OAuthProvider @default(email)
-  oauthProviderId String?
+  auths AuthProvider[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -72,6 +83,19 @@ model User {
   notifications Notification[]
 
   @@index([role])
+  @@index([status])
+}
+
+model AuthProvider {
+  id         String           @id @default(cuid())
+  provider   AuthProviderType
+  providerId String?
+  userId     String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@index([userId])
 }
 
 model UserProfile {
@@ -79,7 +103,7 @@ model UserProfile {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id])
 
-  firstName     String
+  fullName      String
   bio           String?
   state         String?
   gpa           Float?
@@ -97,30 +121,187 @@ model UserProfile {
   scholarships StudentScholarshipInterest?
   progress     ProfileProgress?
 
-  essays           Essay[]
-  academicInterest AcademicInterest?
+  essays                   Essay[]
+  academicInterest         AcademicInterest?
+  basicInformation         BasicInformation?
+  extraCurricularsActivity ExtracurricularActivity?
+  volunteerWork            VolunteerWork?
+  familyBackground         FamilyBackground?
+  uniqueExperience         UniqueExperience?
+  diversityIdentity        DiversityIdentity?
+  scholarshipSpecificInfo  ScholarshipSpecificInfo?
+  anythingElse             AnythingElse?
+ essaySpecificQuestions EssaySpecificQuestions?
+  createdAt                DateTime                 @default(now())
+  updatedAt                DateTime                 @updatedAt
 
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  familyBackground  FamilyBackground?
   studentIdentity   StudentIdentity?
-  essayNarrative    EssayNarrative?
+
   writingPreference WritingPreference?
-  uniqueExperience  UniqueExperience?
+}
+
+
+
+model BasicInformation {
+  id String @id @default(cuid())
+
+  userProfileId String      @unique
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id])
+
+  fullName   String
+  schoolType SchoolType
+  gpa        Float?
+  grade      String?
+  location   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ExtracurricularActivity {
+  id String @id @default(cuid())
+
+  userProfileId String      @unique
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  activityName  String
+  yearsInvolved String
+  leadership    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userProfileId])
+}
+
+model VolunteerWork {
+  id String @id @default(cuid())
+
+  userProfileId     String      @unique
+  userProfile       UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  whatVolunteerWork String
+  organization      String
+  totalHours        Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userProfileId])
+}
+
+model FamilyBackground {
+  id            String      @id @default(uuid())
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id])
+
+  firstGenStatus       FirstGenStatus?
+  householdIncomeRange String?
+  householdSize        Int?
+  familySituations     String? // single-parent, immigrant, military, etc.
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UniqueExperience {
+  id            String      @id @default(uuid())
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id])
+
+  hobbies           String?
+  uniqueExperiences String?
+  proudMoment       String?
+  additionalNotes   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DiversityIdentity {
+  id            String      @id @default(uuid())
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  genderIdentity     String?
+  religiousIdentity  String?
+  selfIdentification String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userProfileId])
+}
+
+model ScholarshipSpecificInfo {
+  id            String      @id @default(uuid())
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  scholarshipsInterested String[]
+  specificScholarships   String?
+  scholarshipDeadline    ScholarshipDeadlineTimeline? // ✅ ENUM
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userProfileId])
+}
+
+model AnythingElse {
+  id            String      @id @default(uuid())
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  anythingElse String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userProfileId])
+}
+
+model EssaySpecificQuestions {
+  id            String      @id @default(uuid())
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  influentialPerson     String?
+  mistakeAndLesson      String?
+  failureStory          String?
+  issueYouCareAbout     String?
+  whatMakesYouDifferent String?
+  communityChangeIdea   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userProfileId])
 }
 
 model Education {
   id            String      @id @default(uuid())
-  userProfileId String
-  profile       UserProfile @relation(fields: [userProfileId], references: [id])
+
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
 
   institutionName String
-  level           String
+  level           String    // high_school | college | other
   startYear       Int
   endYear         Int?
+  major           String?
+  achievements    String?
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([level])
+  @@index([institutionName])
+  @@index([major])
 }
+
+
+
+
 
 model StudentActivity {
   id            String      @id @default(uuid())
@@ -311,20 +492,6 @@ model AcademicInterest {
   updatedAt DateTime @updatedAt
 }
 
-model FamilyBackground {
-  id            String      @id @default(uuid())
-  userProfileId String      @unique
-  profile       UserProfile @relation(fields: [userProfileId], references: [id])
-
-  firstGenStatus       FirstGenStatus?
-  householdIncomeRange String?
-  householdSize        Int?
-  familySituations     Json? // single-parent, immigrant, military, etc.
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 model StudentIdentity {
   id            String      @id @default(uuid())
   userProfileId String      @unique
@@ -339,21 +506,6 @@ model StudentIdentity {
   updatedAt DateTime @updatedAt
 }
 
-model EssayNarrative {
-  id            String      @id @default(uuid())
-  userProfileId String      @unique
-  profile       UserProfile @relation(fields: [userProfileId], references: [id])
-
-  influentialPerson     String?
-  mistakeAndLesson      String?
-  failureStory          String?
-  issueYouCareAbout     String?
-  whatMakesYouDifferent String?
-  communityChangeIdea   String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
 
 model WritingPreference {
   id            String      @id @default(uuid())
@@ -368,19 +520,7 @@ model WritingPreference {
   updatedAt DateTime @updatedAt
 }
 
-model UniqueExperience {
-  id            String      @id @default(uuid())
-  userProfileId String      @unique
-  profile       UserProfile @relation(fields: [userProfileId], references: [id])
 
-  hobbies           String?
-  uniqueExperiences String?
-  proudMoment       String?
-  additionalNotes   String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
 
 model Offer {
   id String @id @default(uuid())
@@ -411,4 +551,32 @@ model Offer {
 enum OfferDiscountType {
   PERCENT
   FIXED
+}
+
+model Faq {
+  id        String       @id @default(uuid())
+
+  category  FaqCategory
+  question  String
+  answer    String
+
+  isActive  Boolean      @default(true)
+  sortOrder Int          @default(0)
+
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+}
+
+enum FaqCategory {
+  PRICING
+  GETTING_STARTED
+  HOW_IT_WORKS
+  PRIVACY
+  SCHOLARSHIPS
+  TECHNICAL
+  SUPPORT
+  ACADEMIC_INTEGRITY
 }
