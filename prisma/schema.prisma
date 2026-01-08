@@ -226,13 +226,31 @@ model Application {
 }
 
 model Plan {
-  id           String @id @default(uuid())
-  internalName String @unique
+  id           String   @id @default(uuid())
+
+  // Plan identity (editable)
+  name         String   @unique
+
+  // UI content
+  description  String?
+  features     String[]
+
+  // Pricing
   monthlyPrice Float
   yearlyPrice  Float
 
+  // Control
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
+
+  // Relations (do not change)
   subscriptions Subscription[]
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
+
 
 model Subscription {
   id     String @id @default(uuid())
@@ -362,4 +380,35 @@ model UniqueExperience {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Offer {
+  id String @id @default(uuid())
+
+  // UI content
+  title        String
+  description  String?
+  ctaText      String?
+
+  // Discount
+  discountType OfferDiscountType @default(PERCENT)
+  discountValue Float
+
+  // Schedule
+  startDate DateTime
+  endDate   DateTime
+
+  // Control
+  isActive Boolean @default(true)
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+enum OfferDiscountType {
+  PERCENT
+  FIXED
 }
