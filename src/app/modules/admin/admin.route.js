@@ -139,4 +139,39 @@ router.get(
   AdminController.getFaqsByCategory
 );
 
+router.get(
+  "/dashboard/overview",
+  checkAuthMiddleware(Role.ADMIN, Role.OWNER),
+  AdminController.getDashboardOverview
+);
+
+router.get(
+  "/dashboard/sales-track",
+  checkAuthMiddleware(Role.ADMIN, Role.OWNER),
+  AdminController.getSalesTrack
+);
+
+router.get(
+  "/analytics/revenue",
+  checkAuthMiddleware(Role.ADMIN, Role.OWNER),
+  AdminController.getRevenueAnalytics
+);
+
+router.get(
+  "/analytics/essay-generation-daily",
+  AdminController.getDailyEssayGeneration
+);
+
+router.get(
+  "/analytics/active-users",
+  checkAuthMiddleware(Role.ADMIN, Role.OWNER),
+  AdminController.getActiveUsersAnalytics
+);
+
+router.get(
+  "/analytics/impressions",
+  checkAuthMiddleware(Role.ADMIN, Role.OWNER),
+  AdminController.getImpressionAnalytics
+);
+
 export const AdminRoutes = router;

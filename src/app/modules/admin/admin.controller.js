@@ -394,4 +394,82 @@ export const AdminController = {
       next(error);
     }
   },
+
+  // =========================
+  // DASHBOARD OVERVIEW
+  // =========================
+  getDashboardOverview: async (req, res, next) => {
+    try {
+      const result = await AdminService.getDashboardOverview(req.prisma);
+      res.status(result.status).json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // =========================
+  // SALES TRACK (OPTIMIZED)
+  // =========================
+  getSalesTrack: async (req, res, next) => {
+    try {
+      const { type = "day" } = req.query;
+
+      const result = await AdminService.getSalesTrack(req.prisma, type);
+
+      res.status(result.status).json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // =========================
+  // GET REVENUE ANALYTICS
+  // =========================
+  getRevenueAnalytics: async (req, res, next) => {
+    try {
+      const { range } = req.query;
+
+      const result = await AdminService.getRevenueAnalytics(req.prisma, range);
+
+      res.status(result.status).json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // =========================
+  // DAILY ESSAY GENERATION
+  // =========================
+  getDailyEssayGeneration: async (req, res, next) => {
+    try {
+      const result = await AdminService.getDailyEssayGeneration(req.prisma);
+      res.status(result.status).json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // =========================
+  // ACTIVE USERS ANALYTICS
+  // =========================
+  getActiveUsersAnalytics: async (req, res, next) => {
+    try {
+      const result = await AdminService.getActiveUsersAnalytics(req.prisma);
+      res.status(result.status).json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // =========================
+  // IMPRESSION ANALYTICS
+  // =========================
+  getImpressionAnalytics: async (req, res, next) => {
+    try {
+      const result = await AdminService.getImpressionAnalytics(req.prisma);
+      res.status(result.status).json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
 };
