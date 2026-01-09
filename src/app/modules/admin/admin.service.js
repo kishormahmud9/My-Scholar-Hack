@@ -1057,4 +1057,537 @@ export const AdminService = {
       data: faqs,
     };
   },
+
+  // =========================
+  // DASHBOARD OVERVIEW (MERGED)
+  // =========================
+  getDashboardOverview: async (prisma) => {
+    try {
+      const [
+        totalUsers,
+        activeSubscribersCount,
+        totalEssays,
+        activeSubscriptions,
+        subscriptions,
+      ] = await Promise.all([
+        prisma.user.count({
+          where: {
+            role: "STUDENT",
+            isDeleted: false,
+          },
+        }),
+
+        prisma.subscription.count({
+          where: {
+            status: "active",
+          },
+        }),
+
+        prisma.essay.count(),
+
+        prisma.subscription.findMany({
+          where: {
+            status: "active",
+          },
+          include: {
+            plan: {
+              select: {
+                monthlyPrice: true,
+              },
+            },
+          },
+        }),
+
+        prisma.subscription.findMany({
+          where: { status: "active" },
+          include: { plan: true },
+        }),
+      ]);
+
+      // ===== Monthly Revenue =====
+      const monthlyRevenue = activeSubscriptions.reduce(
+        (sum, sub) => sum + (sub.plan?.monthlyPrice || 0),
+        0
+      );
+
+      // ===== Subscription Summary (Donut) =====
+      const map = new Map();
+
+      for (const sub of subscriptions) {
+        const planId = sub.plan?.id;
+        const planName = sub.plan?.name || "Unknown";
+
+        if (!map.has(planName)) {
+          map.set(planName, { planId, count: 0 });
+        }
+
+        map.get(planName).count += 1;
+      }
+
+      const totalSubscribers = subscriptions.length;
+
+      let subscriptionData = Array.from(map.entries()).map(([name, obj]) => ({
+        planId: obj.planId,
+        name,
+        count: obj.count,
+        percentage:
+          totalSubscribers > 0
+            ? Math.round((obj.count / totalSubscribers) * 100)
+            : 0,
+      }));
+
+      // Stable UI
+      subscriptionData.sort((a, b) => b.count - a.count);
+
+      return {
+        success: true,
+        status: 200,
+        data: {
+          summary: {
+            totalUsers,
+            activeSubscribers: activeSubscribersCount,
+            monthlyRevenue,
+            totalEssays,
+          },
+          subscriptionSummary: {
+            totalSubscribers,
+            data: subscriptionData,
+          },
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        status: 500,
+        message: "Failed to fetch dashboard overview",
+      };
+    }
+  },
+
+  // =========================
+  // SALES TRACK (OPTIMIZED)
+  // =========================
+  getSalesTrack: async (prisma, type = "day") => {
+    const now = new Date();
+    let startDate;
+    let groupBy;
+
+    if (type === "day") {
+      startDate = new Date();
+      startDate.setDate(now.getDate() - 6); // last 7 days
+      groupBy = "day";
+    } else if (type === "week") {
+      startDate = new Date();
+      startDate.setDate(now.getDate() - 28); // last 4 weeks
+      groupBy = "week";
+    } else if (type === "month") {
+      startDate = new Date();
+      startDate.setMonth(now.getMonth() - 5); // last 6 months
+      groupBy = "month";
+    } else {
+      return {
+        success: false,
+        status: 400,
+        message: "Invalid type. Use day, week, or month",
+      };
+    }
+
+    const subscriptions = await prisma.subscription.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+        },
+      },
+      include: {
+        plan: true,
+      },
+    });
+
+    const map = new Map();
+
+    const formatKey = (date) => {
+      const d = new Date(date);
+
+      if (groupBy === "day") {
+        return d.toISOString().split("T")[0]; // YYYY-MM-DD
+      }
+
+      if (groupBy === "week") {
+        const firstDayOfWeek = new Date(d);
+        firstDayOfWeek.setDate(d.getDate() - d.getDay());
+        return firstDayOfWeek.toISOString().split("T")[0];
+      }
+
+      if (groupBy === "month") {
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}`;
+      }
+    };
+
+    // Aggregate revenue
+    for (const sub of subscriptions) {
+      const key = formatKey(sub.createdAt);
+      const revenue = sub.plan?.monthlyPrice || 0;
+
+      if (!map.has(key)) {
+        map.set(key, 0);
+      }
+
+      map.set(key, map.get(key) + revenue);
+    }
+
+    // Fill missing dates
+    const result = [];
+    const cursor = new Date(startDate);
+
+    while (cursor <= now) {
+      let key;
+
+      if (groupBy === "day") {
+        key = cursor.toISOString().split("T")[0];
+        cursor.setDate(cursor.getDate() + 1);
+      } else if (groupBy === "week") {
+        key = cursor.toISOString().split("T")[0];
+        cursor.setDate(cursor.getDate() + 7);
+      } else if (groupBy === "month") {
+        key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}`;
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+
+      result.push({
+        label: key,
+        value: map.get(key) || 0,
+      });
+    }
+
+    return {
+      success: true,
+      status: 200,
+      type,
+      range:
+        type === "day"
+          ? "Last 7 days"
+          : type === "week"
+          ? "Last 4 weeks"
+          : "Last 6 months",
+      data: result,
+    };
+  },
+
+  // =========================
+  // GET REVENUE ANALYTICS
+  // =========================
+  getRevenueAnalytics: async (prisma, range = "monthly") => {
+    const now = new Date();
+
+    if (!["monthly", "yearly"].includes(range)) {
+      return {
+        success: false,
+        status: 400,
+        message: "Invalid range. Use 'monthly' or 'yearly'",
+      };
+    }
+
+    let labels = [];
+    let data = [];
+
+    // =========================
+    // MONTHLY (group by week)
+    // =========================
+    if (range === "monthly") {
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      const subscriptions = await prisma.subscription.findMany({
+        where: {
+          createdAt: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+        },
+        include: {
+          plan: {
+            select: {
+              monthlyPrice: true,
+            },
+          },
+        },
+      });
+
+      const weeks = [0, 0, 0, 0, 0]; // max 5 weeks
+
+      subscriptions.forEach((sub) => {
+        const day = sub.createdAt.getDate();
+        const weekIndex = Math.floor((day - 1) / 7);
+        weeks[weekIndex] += sub.plan.monthlyPrice;
+      });
+
+      labels = ["Week 1", "Week 2", "Week 3", "Week 4", "Week 5"];
+      data = weeks;
+    }
+
+    // =========================
+    // YEARLY (group by month)
+    // =========================
+    if (range === "yearly") {
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      const endOfYear = new Date(now.getFullYear(), 11, 31);
+
+      const subscriptions = await prisma.subscription.findMany({
+        where: {
+          createdAt: {
+            gte: startOfYear,
+            lte: endOfYear,
+          },
+        },
+        include: {
+          plan: {
+            select: {
+              monthlyPrice: true,
+            },
+          },
+        },
+      });
+
+      const months = Array(12).fill(0);
+
+      subscriptions.forEach((sub) => {
+        const monthIndex = sub.createdAt.getMonth(); // 0–11
+        months[monthIndex] += sub.plan.monthlyPrice;
+      });
+
+      labels = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+
+      data = months;
+    }
+
+    return {
+      success: true,
+      status: 200,
+      range,
+      labels,
+      data,
+    };
+  },
+
+  // =========================
+  // DAILY ESSAY GENERATION (BAR CHART)
+  // =========================
+  getDailyEssayGeneration: async (prisma) => {
+    const now = new Date();
+
+    // Last 7 days (including today)
+    const startDate = new Date();
+    startDate.setDate(now.getDate() - 6);
+
+    const essays = await prisma.essay.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+          lte: now,
+        },
+      },
+      select: {
+        createdAt: true,
+      },
+    });
+
+    // Group by date
+    const map = new Map();
+
+    essays.forEach((essay) => {
+      const dateKey = essay.createdAt.toISOString().split("T")[0];
+      map.set(dateKey, (map.get(dateKey) || 0) + 1);
+    });
+
+    const labels = [];
+    const data = [];
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(now.getDate() - i);
+
+      const key = d.toISOString().split("T")[0];
+      const label = d.toLocaleDateString("en-US", {
+        day: "2-digit",
+        month: "short",
+      });
+
+      labels.push(label);
+      data.push(map.get(key) || 0);
+    }
+
+    return {
+      success: true,
+      status: 200,
+      labels,
+      data,
+    };
+  },
+
+  // =========================
+  // ACTIVE USERS (THIS WEEK vs LAST WEEK)
+  // =========================
+  getActiveUsersAnalytics: async (prisma) => {
+    const now = new Date();
+
+    const startOfThisWeek = new Date();
+    startOfThisWeek.setDate(now.getDate() - 6);
+
+    const startOfLastWeek = new Date();
+    startOfLastWeek.setDate(now.getDate() - 13);
+
+    const endOfLastWeek = new Date();
+    endOfLastWeek.setDate(now.getDate() - 7);
+
+    const thisWeekUsers = await prisma.user.findMany({
+      where: {
+        role: "STUDENT",
+        status: "ACTIVE",
+        isDeleted: false,
+        createdAt: {
+          gte: startOfThisWeek,
+          lte: now,
+        },
+      },
+      select: { createdAt: true },
+    });
+
+    const lastWeekUsers = await prisma.user.findMany({
+      where: {
+        role: "STUDENT",
+        status: "ACTIVE",
+        isDeleted: false,
+        createdAt: {
+          gte: startOfLastWeek,
+          lte: endOfLastWeek,
+        },
+      },
+      select: { createdAt: true },
+    });
+
+    const buildChartData = (users, startDate) => {
+      const map = new Map();
+
+      users.forEach((u) => {
+        const key = u.createdAt.toISOString().split("T")[0];
+        map.set(key, (map.get(key) || 0) + 1);
+      });
+
+      const labels = [];
+      const data = [];
+
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(startDate);
+        d.setDate(d.getDate() + i);
+
+        const key = d.toISOString().split("T")[0];
+        const label = d.toLocaleDateString("en-US", {
+          weekday: "short",
+        });
+
+        labels.push(label);
+        data.push(map.get(key) || 0);
+      }
+
+      return { labels, data };
+    };
+
+    const thisWeek = buildChartData(thisWeekUsers, startOfThisWeek);
+    const lastWeek = buildChartData(lastWeekUsers, startOfLastWeek);
+
+    const thisWeekTotal = thisWeek.data.reduce((a, b) => a + b, 0);
+    const lastWeekTotal = lastWeek.data.reduce((a, b) => a + b, 0);
+
+    const percentageChange =
+      lastWeekTotal === 0
+        ? 100
+        : Math.round(((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100);
+
+    return {
+      success: true,
+      status: 200,
+      labels: thisWeek.labels,
+      thisWeek: thisWeek.data,
+      lastWeek: lastWeek.data,
+      comparison: {
+        thisWeekTotal,
+        lastWeekTotal,
+        percentageChange,
+      },
+    };
+  },
+
+  // =========================
+  // IMPRESSION ANALYTICS (Daily)
+  // =========================
+  getImpressionAnalytics: async (prisma) => {
+    const now = new Date();
+    const startDate = new Date();
+    startDate.setDate(now.getDate() - 6);
+
+    const essays = await prisma.essay.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+          lte: now,
+        },
+      },
+      select: {
+        createdAt: true,
+      },
+    });
+
+    const map = new Map();
+
+    essays.forEach((e) => {
+      const key = e.createdAt.toISOString().split("T")[0];
+      map.set(key, (map.get(key) || 0) + 1);
+    });
+
+    const labels = [];
+    const data = [];
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+
+      const key = d.toISOString().split("T")[0];
+      const label = d.toLocaleDateString("en-US", {
+        day: "2-digit",
+        month: "short",
+      });
+
+      labels.push(label);
+      data.push(map.get(key) || 0);
+    }
+
+    const totalImpressions = data.reduce((a, b) => a + b, 0);
+
+    return {
+      success: true,
+      status: 200,
+      labels,
+      data,
+      total: totalImpressions,
+    };
+  },
 };
