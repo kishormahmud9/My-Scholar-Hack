@@ -158,20 +158,9 @@ router.get(
 );
 
 router.get(
-  "/analytics/essay-generation-daily",
-  AdminController.getDailyEssayGeneration
-);
-
-router.get(
-  "/analytics/active-users",
+  "/analytics/overview",
   checkAuthMiddleware(Role.ADMIN, Role.OWNER),
-  AdminController.getActiveUsersAnalytics
-);
-
-router.get(
-  "/analytics/impressions",
-  checkAuthMiddleware(Role.ADMIN, Role.OWNER),
-  AdminController.getImpressionAnalytics
+  AdminController.getAnalyticsOverview
 );
 
 export const AdminRoutes = router;

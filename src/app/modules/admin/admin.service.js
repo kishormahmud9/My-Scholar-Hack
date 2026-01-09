@@ -1280,88 +1280,69 @@ export const AdminService = {
   },
 
   // =========================
-  // GET REVENUE ANALYTICS
+  // GET REVENUE ANALYTICS (MONTHLY + YEARLY)
   // =========================
-  getRevenueAnalytics: async (prisma, range = "monthly") => {
+  getRevenueAnalytics: async (prisma) => {
     const now = new Date();
-
-    if (!["monthly", "yearly"].includes(range)) {
-      return {
-        success: false,
-        status: 400,
-        message: "Invalid range. Use 'monthly' or 'yearly'",
-      };
-    }
-
-    let labels = [];
-    let data = [];
 
     // =========================
     // MONTHLY (group by week)
     // =========================
-    if (range === "monthly") {
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-      const subscriptions = await prisma.subscription.findMany({
-        where: {
-          createdAt: {
-            gte: startOfMonth,
-            lte: endOfMonth,
-          },
+    const monthlySubs = await prisma.subscription.findMany({
+      where: {
+        createdAt: {
+          gte: startOfMonth,
+          lte: endOfMonth,
         },
-        include: {
-          plan: {
-            select: {
-              monthlyPrice: true,
-            },
-          },
-        },
-      });
+      },
+      include: {
+        plan: { select: { monthlyPrice: true } },
+      },
+    });
 
-      const weeks = [0, 0, 0, 0, 0]; // max 5 weeks
+    const weeks = [0, 0, 0, 0, 0];
 
-      subscriptions.forEach((sub) => {
-        const day = sub.createdAt.getDate();
-        const weekIndex = Math.floor((day - 1) / 7);
-        weeks[weekIndex] += sub.plan.monthlyPrice;
-      });
+    monthlySubs.forEach((sub) => {
+      const day = sub.createdAt.getDate();
+      const weekIndex = Math.floor((day - 1) / 7);
+      weeks[weekIndex] += sub.plan?.monthlyPrice || 0;
+    });
 
-      labels = ["Week 1", "Week 2", "Week 3", "Week 4", "Week 5"];
-      data = weeks;
-    }
+    const monthly = {
+      labels: ["Week 1", "Week 2", "Week 3", "Week 4", "Week 5"],
+      data: weeks,
+    };
 
     // =========================
     // YEARLY (group by month)
     // =========================
-    if (range === "yearly") {
-      const startOfYear = new Date(now.getFullYear(), 0, 1);
-      const endOfYear = new Date(now.getFullYear(), 11, 31);
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const endOfYear = new Date(now.getFullYear(), 11, 31);
 
-      const subscriptions = await prisma.subscription.findMany({
-        where: {
-          createdAt: {
-            gte: startOfYear,
-            lte: endOfYear,
-          },
+    const yearlySubs = await prisma.subscription.findMany({
+      where: {
+        createdAt: {
+          gte: startOfYear,
+          lte: endOfYear,
         },
-        include: {
-          plan: {
-            select: {
-              monthlyPrice: true,
-            },
-          },
-        },
-      });
+      },
+      include: {
+        plan: { select: { monthlyPrice: true } },
+      },
+    });
 
-      const months = Array(12).fill(0);
+    const months = Array(12).fill(0);
 
-      subscriptions.forEach((sub) => {
-        const monthIndex = sub.createdAt.getMonth(); // 0–11
-        months[monthIndex] += sub.plan.monthlyPrice;
-      });
+    yearlySubs.forEach((sub) => {
+      const monthIndex = sub.createdAt.getMonth();
+      months[monthIndex] += sub.plan?.monthlyPrice || 0;
+    });
 
-      labels = [
+    const yearly = {
+      labels: [
         "Jan",
         "Feb",
         "Mar",
@@ -1374,52 +1355,52 @@ export const AdminService = {
         "Oct",
         "Nov",
         "Dec",
-      ];
-
-      data = months;
-    }
+      ],
+      data: months,
+    };
 
     return {
       success: true,
       status: 200,
-      range,
-      labels,
-      data,
+      data: {
+        monthly,
+        yearly,
+      },
     };
   },
 
   // =========================
-  // DAILY ESSAY GENERATION (BAR CHART)
+  // ANALYTICS OVERVIEW
   // =========================
-  getDailyEssayGeneration: async (prisma) => {
+  getAnalyticsOverview: async (prisma) => {
     const now = new Date();
 
-    // Last 7 days (including today)
-    const startDate = new Date();
-    startDate.setDate(now.getDate() - 6);
+    // =========================
+    // 1️⃣ DAILY ESSAY GENERATION
+    // =========================
+    const essayStartDate = new Date();
+    essayStartDate.setDate(now.getDate() - 6);
+    essayStartDate.setHours(0, 0, 0, 0);
 
     const essays = await prisma.essay.findMany({
       where: {
         createdAt: {
-          gte: startDate,
+          gte: essayStartDate,
           lte: now,
         },
       },
-      select: {
-        createdAt: true,
-      },
+      select: { createdAt: true },
     });
 
-    // Group by date
-    const map = new Map();
+    const essayMap = new Map();
 
     essays.forEach((essay) => {
-      const dateKey = essay.createdAt.toISOString().split("T")[0];
-      map.set(dateKey, (map.get(dateKey) || 0) + 1);
+      const key = essay.createdAt.toISOString().split("T")[0];
+      essayMap.set(key, (essayMap.get(key) || 0) + 1);
     });
 
-    const labels = [];
-    const data = [];
+    const essayLabels = [];
+    const essayData = [];
 
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
@@ -1431,32 +1412,24 @@ export const AdminService = {
         month: "short",
       });
 
-      labels.push(label);
-      data.push(map.get(key) || 0);
+      essayLabels.push(label);
+      essayData.push(essayMap.get(key) || 0);
     }
 
-    return {
-      success: true,
-      status: 200,
-      labels,
-      data,
-    };
-  },
-
-  // =========================
-  // ACTIVE USERS (THIS WEEK vs LAST WEEK)
-  // =========================
-  getActiveUsersAnalytics: async (prisma) => {
-    const now = new Date();
-
+    // =========================
+    // 2️⃣ ACTIVE USERS (THIS WEEK vs LAST WEEK)
+    // =========================
     const startOfThisWeek = new Date();
     startOfThisWeek.setDate(now.getDate() - 6);
+    startOfThisWeek.setHours(0, 0, 0, 0);
 
     const startOfLastWeek = new Date();
     startOfLastWeek.setDate(now.getDate() - 13);
+    startOfLastWeek.setHours(0, 0, 0, 0);
 
     const endOfLastWeek = new Date();
     endOfLastWeek.setDate(now.getDate() - 7);
+    endOfLastWeek.setHours(23, 59, 59, 999);
 
     const thisWeekUsers = await prisma.user.findMany({
       where: {
@@ -1500,9 +1473,7 @@ export const AdminService = {
         d.setDate(d.getDate() + i);
 
         const key = d.toISOString().split("T")[0];
-        const label = d.toLocaleDateString("en-US", {
-          weekday: "short",
-        });
+        const label = d.toLocaleDateString("en-US", { weekday: "short" });
 
         labels.push(label);
         data.push(map.get(key) || 0);
@@ -1522,52 +1493,21 @@ export const AdminService = {
         ? 100
         : Math.round(((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100);
 
-    return {
-      success: true,
-      status: 200,
-      labels: thisWeek.labels,
-      thisWeek: thisWeek.data,
-      lastWeek: lastWeek.data,
-      comparison: {
-        thisWeekTotal,
-        lastWeekTotal,
-        percentageChange,
-      },
-    };
-  },
-
-  // =========================
-  // IMPRESSION ANALYTICS (Daily)
-  // =========================
-  getImpressionAnalytics: async (prisma) => {
-    const now = new Date();
-    const startDate = new Date();
-    startDate.setDate(now.getDate() - 6);
-
-    const essays = await prisma.essay.findMany({
-      where: {
-        createdAt: {
-          gte: startDate,
-          lte: now,
-        },
-      },
-      select: {
-        createdAt: true,
-      },
-    });
-
-    const map = new Map();
+    // =========================
+    // 3️⃣ IMPRESSION ANALYTICS
+    // =========================
+    const impressionMap = new Map();
 
     essays.forEach((e) => {
       const key = e.createdAt.toISOString().split("T")[0];
-      map.set(key, (map.get(key) || 0) + 1);
+      impressionMap.set(key, (impressionMap.get(key) || 0) + 1);
     });
 
-    const labels = [];
-    const data = [];
+    const impressionLabels = [];
+    const impressionData = [];
 
     for (let i = 0; i < 7; i++) {
-      const d = new Date(startDate);
+      const d = new Date(essayStartDate);
       d.setDate(d.getDate() + i);
 
       const key = d.toISOString().split("T")[0];
@@ -1576,18 +1516,39 @@ export const AdminService = {
         month: "short",
       });
 
-      labels.push(label);
-      data.push(map.get(key) || 0);
+      impressionLabels.push(label);
+      impressionData.push(impressionMap.get(key) || 0);
     }
 
-    const totalImpressions = data.reduce((a, b) => a + b, 0);
+    const totalImpressions = impressionData.reduce((a, b) => a + b, 0);
 
+    // =========================
+    // FINAL RESPONSE
+    // =========================
     return {
       success: true,
       status: 200,
-      labels,
-      data,
-      total: totalImpressions,
+      data: {
+        dailyEssayGeneration: {
+          labels: essayLabels,
+          data: essayData,
+        },
+        activeUsers: {
+          labels: thisWeek.labels,
+          thisWeek: thisWeek.data,
+          lastWeek: lastWeek.data,
+          comparison: {
+            thisWeekTotal,
+            lastWeekTotal,
+            percentageChange,
+          },
+        },
+        impressions: {
+          labels: impressionLabels,
+          data: impressionData,
+          total: totalImpressions,
+        },
+      },
     };
   },
 };
