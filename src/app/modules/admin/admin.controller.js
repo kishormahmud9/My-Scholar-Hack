@@ -427,10 +427,7 @@ export const AdminController = {
   // =========================
   getRevenueAnalytics: async (req, res, next) => {
     try {
-      const { range } = req.query;
-
-      const result = await AdminService.getRevenueAnalytics(req.prisma, range);
-
+      const result = await AdminService.getRevenueAnalytics(req.prisma);
       res.status(result.status).json(result);
     } catch (error) {
       next(error);
@@ -438,35 +435,11 @@ export const AdminController = {
   },
 
   // =========================
-  // DAILY ESSAY GENERATION
+  // ANALYTICS OVERVIEW
   // =========================
-  getDailyEssayGeneration: async (req, res, next) => {
+  getAnalyticsOverview: async (req, res, next) => {
     try {
-      const result = await AdminService.getDailyEssayGeneration(req.prisma);
-      res.status(result.status).json(result);
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  // =========================
-  // ACTIVE USERS ANALYTICS
-  // =========================
-  getActiveUsersAnalytics: async (req, res, next) => {
-    try {
-      const result = await AdminService.getActiveUsersAnalytics(req.prisma);
-      res.status(result.status).json(result);
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  // =========================
-  // IMPRESSION ANALYTICS
-  // =========================
-  getImpressionAnalytics: async (req, res, next) => {
-    try {
-      const result = await AdminService.getImpressionAnalytics(req.prisma);
+      const result = await AdminService.getAnalyticsOverview(req.prisma);
       res.status(result.status).json(result);
     } catch (error) {
       next(error);
