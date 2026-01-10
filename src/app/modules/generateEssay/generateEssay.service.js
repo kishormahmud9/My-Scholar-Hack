@@ -1,95 +1,54 @@
-import { PrismaClient } from "@prisma/client";
-import { aiClient } from "../utils/aiClient.js";
+import axios from "axios";
+import { envVars } from "../../config/env.js";
 
-const prisma = new PrismaClient();
-
-/**
- * Create essay, call AI, then update same record
- */
-export const createEssayWithAI = async ({
-  userId,
-  title,
-  prompt,
-  userProfileId,
-  scholarshipId,
-}) => {
-  // 1. Save prompt first
-  const essay = await prisma.essay.create({
-    data: {
-      userId,
-      title,
-      prompt,
-      userProfileId,
-      scholarshipId,
-      status: "generating",
-    },
-  });
-
-  try {
-    // 2. Call AI API
-    const aiResponse = await aiClient.post("/generate-essay", {
-      title,
-      prompt,
+export const EssayService = {
+  // GET all essays by user
+  getByUserId: async (prisma, userId) => {
+    return prisma.essay.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
     });
+  },
 
-    const { content, wordCount } = aiResponse.data;
+  // GET single essay
+  getById: async (prisma, id, userId) => {
+    return prisma.essay.findFirst({
+      where: { id, userId },
+    });
+  },
 
-    // 3. Update same essay with generated content
-    const updatedEssay = await prisma.essay.update({
-      where: { id: essay.id },
+  // CREATE prompt first
+  createPrompt: async (prisma, data) => {
+    return prisma.essay.create({
       data: {
-        contentFinal: content,
-        wordCount: wordCount ?? content.split(" ").length,
-        status: "completed",
+        ...data,
+        status: "generating",
       },
     });
+  },
 
-    return updatedEssay;
-  } catch (error) {
-    // If AI fails, keep the prompt but mark failed
-    await prisma.essay.update({
-      where: { id: essay.id },
-      data: { status: "failed" },
+  // UPDATE generated content
+  updateGeneratedEssay: async (prisma, id, data) => {
+    return prisma.essay.update({
+      where: { id },
+      data,
+    });
+  },
+
+  // DELETE
+  delete: async (prisma, id, userId) => {
+    return prisma.essay.deleteMany({
+      where: { id, userId },
+    });
+  },
+
+  // AI CALL
+  generateEssayByAI: async (title, prompt) => {
+    const response = await axios.post(envVars.AI_SERVICE_URL, {
+      title,
+      prompt,
     });
 
-    throw error;
-  }
-};
-
-/**
- * Get all essays for user
- */
-export const getEssaysByUser = async (userId) => {
-  return prisma.essay.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-  });
-};
-
-/**
- * Get single essay
- */
-export const getEssayById = async (id, userId) => {
-  return prisma.essay.findFirst({
-    where: { id, userId },
-  });
-};
-
-/**
- * Update essay manually
- */
-export const updateEssay = async (id, userId, data) => {
-  return prisma.essay.updateMany({
-    where: { id, userId },
-    data,
-  });
-};
-
-/**
- * Delete essay
- */
-export const deleteEssay = async (id, userId) => {
-  return prisma.essay.deleteMany({
-    where: { id, userId },
-  });
+    return response.data;
+  },
 };

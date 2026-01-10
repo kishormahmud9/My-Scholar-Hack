@@ -1,57 +1,138 @@
-import * as essayService from "../services/essay.service.js";
+import { StatusCodes } from "http-status-codes";
+import { EssayService } from "./generateEssay.service.js";
 
-export const createEssay = async (req, res) => {
+
+const getEssays = async (req, res, next) => {
   try {
+    const prisma = req.prisma;
+    const userId = req.user.userId;
+
+    const data = await EssayService.getByUserId(prisma, userId);
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getEssayById = async (req, res, next) => {
+  try {
+    const prisma = req.prisma;
+    const userId = req.user.userId;
+    const { id } = req.params;
+
+    const data = await EssayService.getById(prisma, id, userId);
+
+    if (!data) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        message: "Essay not found",
+      });
+    }
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const createEssay = async (req, res, next) => {
+  try {
+    const prisma = req.prisma;
+    const userId = req.user.userId;
     const { title, prompt, userProfileId, scholarshipId } = req.body;
 
     if (!prompt) {
-      return res.status(400).json({ message: "Prompt is required" });
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: "Prompt is required",
+      });
     }
 
-    const essay = await essayService.createEssayWithAI({
-      userId: req.user.id,
+    // ================================
+    // 1️⃣ Save prompt first
+    // ================================
+    const essay = await EssayService.createPrompt(prisma, {
+      userId,
       title,
       prompt,
       userProfileId,
       scholarshipId,
     });
 
-    res.status(201).json(essay);
+    try {
+      // ================================
+      // 2️⃣ Call AI API
+      // ================================
+      const aiResponse = await EssayService.generateEssayByAI(
+        title,
+        prompt
+      );
+
+      // ================================
+      // 3️⃣ Update same essay
+      // ================================
+      const updatedEssay = await EssayService.updateEssay(
+        prisma,
+        essay.id,
+        {
+          contentFinal: aiResponse.content,
+          wordCount:
+            aiResponse.wordCount ??
+            aiResponse.content?.split(" ").length,
+          status: "completed",
+        }
+      );
+
+      res.status(StatusCodes.CREATED).json({
+        success: true,
+        message: "Essay generated successfully",
+        data: updatedEssay,
+      });
+    } catch (aiError) {
+      // ================================
+      // AI failed, mark as failed
+      // ================================
+      await EssayService.updateEssay(prisma, essay.id, {
+        status: "failed",
+      });
+
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Essay generation failed",
+      });
+    }
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Essay generation failed" });
+    next(error);
   }
 };
 
-export const getEssays = async (req, res) => {
-  const essays = await essayService.getEssaysByUser(req.user.id);
-  res.json(essays);
-};
+const deleteEssay = async (req, res, next) => {
+  try {
+    const prisma = req.prisma;
+    const userId = req.user.userId;
+    const { id } = req.params;
 
-export const getEssay = async (req, res) => {
-  const essay = await essayService.getEssayById(
-    req.params.id,
-    req.user.id
-  );
+    await EssayService.delete(prisma, id, userId);
 
-  if (!essay) {
-    return res.status(404).json({ message: "Essay not found" });
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Essay deleted successfully",
+    });
+  } catch (error) {
+    next(error);
   }
-
-  res.json(essay);
 };
 
-export const updateEssay = async (req, res) => {
-  await essayService.updateEssay(
-    req.params.id,
-    req.user.id,
-    req.body
-  );
-
-  res.json({ message: "Essay updated" });
-};
-
-export const deleteEssay = async (req, res) => {
-  await essayService.deleteEssay(req.params.id, req.user.id);
-  res.json({ message: "Essay deleted" });
+export const EssayController = {
+  getEssays,
+  getEssayById,
+  createEssay,
+  deleteEssay,
 };
