@@ -12,7 +12,7 @@ router.get("/me", checkAuthMiddleware(...Object.values(Role)), UserController.ge
 
 router.get("/user-details/:id", checkAuthMiddleware(...Object.values(Role)), UserController.userDetails);
 
-router.get("/users", UserController.getAllUsersWithProfile);
+router.get("/all", UserController.getAllUsersWithProfile);
 
 router.post("/update-user", checkAuthMiddleware(...Object.values(Role)), UserController.updateUser);
 
