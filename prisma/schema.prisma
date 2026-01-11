@@ -300,9 +300,27 @@ model Education {
 }
 
 
+model Essay {
+  id            String  @id @default(uuid())
+  userId        String
+  userProfileId String?
+  scholarshipId String?
 
+  title        String?
+  prompt       String?
+  contentFinal String?
+  status       String  @default("draft")
+  wordCount    Int?
 
+  user        User         @relation(fields: [userId], references: [id])
+  profile     UserProfile? @relation(fields: [userProfileId], references: [id])
+  scholarship Scholarship? @relation(fields: [scholarshipId], references: [id])
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------
 model StudentActivity {
   id            String      @id @default(uuid())
   userProfileId String
@@ -458,26 +476,7 @@ model Notification {
   createdAt DateTime @default(now())
 }
 
-model Essay {
-  id            String  @id @default(uuid())
-  userId        String
-  userProfileId String?
-  scholarshipId String?
 
-  title        String
-  prompt       String?
-  contentDraft String?
-  contentFinal String?
-  status       String  @default("draft")
-  wordCount    Int?
-
-  user        User         @relation(fields: [userId], references: [id])
-  profile     UserProfile? @relation(fields: [userProfileId], references: [id])
-  scholarship Scholarship? @relation(fields: [scholarshipId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
 
 model AcademicInterest {
   id            String      @id @default(uuid())

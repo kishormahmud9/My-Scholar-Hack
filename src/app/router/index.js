@@ -25,6 +25,7 @@ import { ScholarshipSpecificInfoRoutes } from "../modules/profiles/scholarshipSp
 import { AnythingElseRoutes } from "../modules/profiles/anythingElse/anythingElse.route.js";
 import { EssaySpecificQuestionsRoutes } from "../modules/profiles/essaySpecificQuestions/essaySpecificQuestions.route.js";
 import { EducationRoutes } from "../modules/profiles/education/education.route.js";
+import { GenerateEssayRoutes } from "../modules/generateEssay/generateEssay.route.js";
 
 export const router = Router();
 
@@ -88,6 +89,10 @@ const moduleRoutes = [
     {
     path: "/profile/education",
     route: EducationRoutes,
+  },
+    {
+    path: "/generate-essay",
+    route: GenerateEssayRoutes,
   },
   {
     path: "/student-identity",
