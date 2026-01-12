@@ -307,8 +307,8 @@ model Essay {
   scholarshipId String?
 
   title        String?
-  prompt       String?
-  contentFinal String?
+  prompt       String?   @db.Text
+  contentFinal String?  @db.Text 
   status       String  @default("draft")
   wordCount    Int?
 
