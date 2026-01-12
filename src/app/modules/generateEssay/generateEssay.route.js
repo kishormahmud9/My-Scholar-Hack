@@ -3,7 +3,6 @@ import { checkAuthMiddleware } from "../../middleware/checkAuthMiddleware.js";
 import { Role } from "../../utils/role.js";
 import { EssayController } from "./generateEssay.controller.js";
 
-
 const router = express.Router();
 
 router.get(
@@ -19,9 +18,16 @@ router.get(
 );
 
 router.post(
-  "/",
+  "/create",
   checkAuthMiddleware(Role.STUDENT),
   EssayController.createEssay
+);
+
+// EDIT essay anytime
+router.patch(
+  "/update/:id",
+  checkAuthMiddleware(Role.STUDENT),
+  EssayController.updateEssayContent
 );
 
 router.delete(
