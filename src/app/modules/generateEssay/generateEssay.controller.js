@@ -1,5 +1,7 @@
 import { StatusCodes } from "http-status-codes";
 import { EssayService } from "./generateEssay.service.js";
+import { normalizeEssayText } from "../../utils/normalizeEssayText.js";
+import { toHtml } from "../../utils/toHtml.js";
 
 // =========================
 // GET all essays
@@ -54,8 +56,8 @@ const createEssay = async (req, res, next) => {
   try {
     const prisma = req.prisma;
     const userId = req.user.userId;
-    const profileId = req.user.userProfileId
-    const scholarshipId = req.user.scholarshipId
+    const profileId = req.user.userProfileId;
+    const scholarshipId = req.user.scholarshipId;
     const { title, prompt } = req.body;
 
     if (!prompt) {
@@ -71,30 +73,37 @@ const createEssay = async (req, res, next) => {
       title,
       prompt,
       userProfileId: profileId,
-     scholarshipId,
+      scholarshipId,
     });
 
     try {
       // 2️⃣ Call AI
       const aiResponse = await EssayService.generateEssayByAI(title, prompt);
 
-      console.log("AI RESPONSE:", aiResponse);
-
       if (!aiResponse?.essay) {
         throw new Error("AI returned empty essay");
       }
 
-      // 3️⃣ Update essay with AI content
+      // 3️⃣ Normalize escaped text
+      const cleanedContent = normalizeEssayText(aiResponse.essay);
+
+      // 4️⃣ Save CLEAN TEXT ONLY
       const updatedEssay = await EssayService.updateEssay(prisma, essay.id, {
-        contentFinal: aiResponse.essay,
-        wordCount: aiResponse.essay.trim().split(/\s+/).length,
+        contentFinal: cleanedContent,
+        wordCount: cleanedContent.split(/\s+/).length,
         status: "completed",
       });
+
+      // 5️⃣ Convert to HTML ONLY for response
+      const htmlContent = toHtml(updatedEssay.contentFinal);
 
       res.status(StatusCodes.CREATED).json({
         success: true,
         message: "Essay generated successfully",
-        data: updatedEssay,
+        data: {
+          ...updatedEssay,
+          contentFinal: htmlContent,
+        },
       });
     } catch (aiError) {
       console.error("AI ERROR:", aiError);
@@ -113,7 +122,6 @@ const createEssay = async (req, res, next) => {
   }
 };
 
-
 // =========================
 // EDIT essay text (USER)
 // =========================
@@ -122,7 +130,7 @@ const updateEssayContent = async (req, res, next) => {
     const prisma = req.prisma;
     const userId = req.user.userId;
     const { id } = req.params;
-    const { contentFinal } = req.body;
+    let { contentFinal } = req.body;
 
     if (!contentFinal) {
       return res.status(StatusCodes.BAD_REQUEST).json({
@@ -131,11 +139,15 @@ const updateEssayContent = async (req, res, next) => {
       });
     }
 
+    // ✅ FIX HERE — normalize BEFORE saving
+    contentFinal = normalizeEssayText(contentFinal);
+   // 5️⃣ Convert to HTML ONLY for response
+      const htmlContent = toHtml(contentFinal);
     const result = await EssayService.updateEssayContent(
       prisma,
       id,
       userId,
-      contentFinal
+      contentFinal = htmlContent
     );
 
     if (result.count === 0) {
@@ -153,6 +165,7 @@ const updateEssayContent = async (req, res, next) => {
     next(error);
   }
 };
+
 
 // =========================
 // DELETE essay

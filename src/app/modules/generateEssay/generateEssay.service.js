@@ -46,20 +46,21 @@ export const EssayService = {
   // =========================
   // UPDATE essay content (USER EDIT)
   // =========================
-  updateEssayContent: async (prisma, id, userId, contentFinal) => {
-    return prisma.essay.updateMany({
-      where: {
-        id,
-        userId, // ownership check
-      },
-      data: {
-        contentFinal,
-        wordCount: contentFinal.trim().split(/\s+/).length,
-        status: "edited",
-        updatedAt: new Date(),
-      },
-    });
-  },
+ updateEssayContent: async (prisma, id, userId, contentFinal) => {
+  return prisma.essay.updateMany({
+    where: {
+      id,
+      userId,
+    },
+    data: {
+      contentFinal,
+      wordCount: contentFinal.trim().split(/\s+/).length,
+      status: "edited",
+      updatedAt: new Date(),
+    },
+  });
+},
+
 
   // =========================
   // DELETE
