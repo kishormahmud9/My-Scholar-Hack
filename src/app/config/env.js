@@ -23,7 +23,8 @@ const loadEnvVars = () => {
     "REDIS_PORT",
     "REDIS_USERNAME",
     "REDIS_PASSWORD",
-    "AI_SERVICE_URL"
+    "AI_SERVICE_URL",
+    "AI_ESSAY_COMPARE_API_URL"
   ];
 
   requiredVars.forEach((key) => {
@@ -71,6 +72,7 @@ const loadEnvVars = () => {
 },
 
   AI_SERVICE_URL: process.env.AI_SERVICE_URL,
+  AI_ESSAY_COMPARE_API_URL: process.env.AI_ESSAY_COMPARE_API_URL,
   };
 };
 
