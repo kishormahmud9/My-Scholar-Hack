@@ -58,6 +58,7 @@ enum SchoolType {
   UNIVERSITY
   OTHER
 }
+
 model User {
   id           String  @id @default(cuid())
   email        String  @unique
@@ -76,11 +77,12 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  profile       UserProfile?
-  subscriptions Subscription[]
-  applications  Application[]
-  essays        Essay[]
-  notifications Notification[]
+  profile          UserProfile?
+  subscriptions    Subscription[]
+  applications     Application[]
+  essays           Essay[]
+  essayComparisons EssayComparison[]
+  notifications    Notification[]
 
   @@index([role])
   @@index([status])
@@ -131,16 +133,14 @@ model UserProfile {
   diversityIdentity        DiversityIdentity?
   scholarshipSpecificInfo  ScholarshipSpecificInfo?
   anythingElse             AnythingElse?
- essaySpecificQuestions EssaySpecificQuestions?
+  essaySpecificQuestions   EssaySpecificQuestions?
+  essayComparisons         EssayComparison[]
   createdAt                DateTime                 @default(now())
   updatedAt                DateTime                 @updatedAt
-
-  studentIdentity   StudentIdentity?
+  studentIdentity          StudentIdentity?
 
   writingPreference WritingPreference?
 }
-
-
 
 model BasicInformation {
   id String @id @default(cuid())
@@ -279,13 +279,13 @@ model EssaySpecificQuestions {
 }
 
 model Education {
-  id            String      @id @default(uuid())
+  id String @id @default(uuid())
 
   userProfileId String      @unique
   profile       UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
 
   institutionName String
-  level           String    // high_school | college | other
+  level           String // high_school | college | other
   startYear       Int
   endYear         Int?
   major           String?
@@ -299,7 +299,6 @@ model Education {
   @@index([major])
 }
 
-
 model Essay {
   id            String  @id @default(uuid())
   userId        String
@@ -307,17 +306,47 @@ model Essay {
   scholarshipId String?
 
   title        String?
-  prompt       String?   @db.Text
-  contentFinal String?  @db.Text 
+  prompt       String? @db.Text
+  contentFinal String? @db.Text
   status       String  @default("draft")
   wordCount    Int?
 
-  user        User         @relation(fields: [userId], references: [id])
-  profile     UserProfile? @relation(fields: [userProfileId], references: [id])
-  scholarship Scholarship? @relation(fields: [scholarshipId], references: [id])
+  user           User              @relation(fields: [userId], references: [id])
+  profile        UserProfile?      @relation(fields: [userProfileId], references: [id])
+  scholarship    Scholarship?      @relation(fields: [scholarshipId], references: [id])
+  comparisonsAsA EssayComparison[] @relation("EssayA")
+  comparisonsAsB EssayComparison[] @relation("EssayB")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model EssayComparison {
+  id String @id @default(uuid())
+
+  userId        String
+  userProfileId String?
+  essayAId      String
+  essayBId      String
+
+  scoreA Int
+  scoreB Int
+
+  strengthsA    String
+  improvementsA String
+  strengthsB    String
+  improvementsB String
+
+  winner         String
+  percentageDiff Int
+  reason         String
+
+  createdAt DateTime @default(now())
+
+  user    User         @relation(fields: [userId], references: [id])
+  profile UserProfile? @relation(fields: [userProfileId], references: [id])
+  essayA  Essay        @relation("EssayA", fields: [essayAId], references: [id])
+  essayB  Essay        @relation("EssayB", fields: [essayBId], references: [id])
 }
 
 // ---------------
@@ -425,22 +454,22 @@ model Application {
 }
 
 model Plan {
-  id           String   @id @default(uuid())
+  id String @id @default(uuid())
 
   // Plan identity (editable)
-  name         String   @unique
+  name String @unique
 
   // UI content
-  description  String?
-  features     String[]
+  description String?
+  features    String[]
 
   // Pricing
   monthlyPrice Float
   yearlyPrice  Float
 
   // Control
-  isActive     Boolean  @default(true)
-  sortOrder    Int      @default(0)
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
 
   // Relations (do not change)
   subscriptions Subscription[]
@@ -449,7 +478,6 @@ model Plan {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-
 
 model Subscription {
   id     String @id @default(uuid())
@@ -475,8 +503,6 @@ model Notification {
 
   createdAt DateTime @default(now())
 }
-
-
 
 model AcademicInterest {
   id            String      @id @default(uuid())
@@ -505,7 +531,6 @@ model StudentIdentity {
   updatedAt DateTime @updatedAt
 }
 
-
 model WritingPreference {
   id            String      @id @default(uuid())
   userProfileId String      @unique
@@ -519,18 +544,16 @@ model WritingPreference {
   updatedAt DateTime @updatedAt
 }
 
-
-
 model Offer {
   id String @id @default(uuid())
 
   // UI content
-  title        String
-  description  String?
-  ctaText      String?
+  title       String
+  description String?
+  ctaText     String?
 
   // Discount
-  discountType OfferDiscountType @default(PERCENT)
+  discountType  OfferDiscountType @default(PERCENT)
   discountValue Float
 
   // Schedule
@@ -553,17 +576,17 @@ enum OfferDiscountType {
 }
 
 model Faq {
-  id        String       @id @default(uuid())
+  id String @id @default(uuid())
 
-  category  FaqCategory
-  question  String
-  answer    String
+  category FaqCategory
+  question String
+  answer   String
 
-  isActive  Boolean      @default(true)
-  sortOrder Int          @default(0)
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
 
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([category])
   @@index([isActive])
