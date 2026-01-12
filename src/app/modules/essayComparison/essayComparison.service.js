@@ -10,9 +10,9 @@ const normalizeText = (text = "") => {
 };
 
 export const EssayComparisonService = {
-  // =========================
+
   // CALL AI COMPARE API
-  // =========================
+
   compareEssaysByAI: async (essayA, essayB) => {
     const response = await axios.post(
      envVars.AI_ESSAY_COMPARE_API_URL,
@@ -47,16 +47,16 @@ export const EssayComparisonService = {
     };
   },
 
-  // =========================
+
   // SAVE COMPARISON
-  // =========================
+
   create: async (prisma, data) => {
     return prisma.essayComparison.create({ data });
   },
 
-  // =========================
+
   // GET HISTORY
-  // =========================
+
   getByUserId: async (prisma, userId) => {
     return prisma.essayComparison.findMany({
       where: { userId },
@@ -68,9 +68,9 @@ export const EssayComparisonService = {
     });
   },
 
-  // =========================
+
   // GET SINGLE RESULT
-  // =========================
+
   getById: async (prisma, id, userId) => {
     return prisma.essayComparison.findFirst({
       where: { id, userId },

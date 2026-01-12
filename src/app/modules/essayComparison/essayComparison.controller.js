@@ -22,9 +22,9 @@ const compareEssays = async (req, res, next) => {
       });
     }
 
-    // =========================
+
     // FETCH ESSAYS (ownership check)
-    // =========================
+
     const essays = await prisma.essay.findMany({
       where: {
         id: { in: [essayAId, essayBId] },
@@ -42,18 +42,18 @@ const compareEssays = async (req, res, next) => {
     const essayA = essays.find(e => e.id === essayAId);
     const essayB = essays.find(e => e.id === essayBId);
 
-    // =========================
+
     // CALL AI
-    // =========================
+
     const aiResult =
       await EssayComparisonService.compareEssaysByAI(
         essayA.contentFinal,
         essayB.contentFinal
       );
 
-    // =========================
+
     // SAVE RESULT
-    // =========================
+
     const savedResult =
       await EssayComparisonService.create(prisma, {
         userId,

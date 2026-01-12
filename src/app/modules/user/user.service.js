@@ -79,9 +79,9 @@ import bcrypt from "bcrypt";
 // };
 
 export const UserService = {
-  // ======================
+ 
   // BASIC FIND METHODS
-  // ======================
+ 
   findByEmail: async (prisma, email) =>
     prisma.user.findUnique({ where: { email } }),
 
@@ -91,9 +91,9 @@ export const UserService = {
   findById: async (prisma, id) =>
     prisma.user.findUnique({ where: { id } }),
 
-  // ======================
+ 
   // ✅ ONLY USER INFO (NO PROFILE)
-  // ======================
+ 
   findUserInfoById: async (prisma, id) =>
     prisma.user.findUnique({
       where: { id },
@@ -111,9 +111,9 @@ export const UserService = {
       },
     }),
 
-  // ======================
+ 
   // UPDATE / DELETE
-  // ======================
+ 
   update: async (prisma, id, data) =>
     prisma.user.update({
       where: { id },
@@ -125,9 +125,9 @@ export const UserService = {
       where: { id },
     }),
 
-  // ======================
+ 
   // USER + FULL PROFILE
-  // ======================
+ 
   findByIdWithProfile: async (prisma, id) =>
     prisma.user.findUnique({
       where: { id },
