@@ -9,7 +9,7 @@ const startServer = async () => {
   try {
     await connectRedis();
     app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT} || http://localhost:5001`);
+      console.log(`🚀 Server running on port ${PORT} `);
     });
 
     
