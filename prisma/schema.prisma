@@ -81,6 +81,7 @@ model User {
   subscriptions    Subscription[]
   applications     Application[]
   essays           Essay[]
+  recommendations  Recommendation[]
   essayComparisons EssayComparison[]
   notifications    Notification[]
 
@@ -349,6 +350,43 @@ model EssayComparison {
   essayB  Essay        @relation("EssayB", fields: [essayBId], references: [id])
 }
 
+model Scholarship {
+  id String @id @default(uuid())
+
+  title  String
+  type   String
+  amount Int
+  from   String
+
+  deadline    DateTime?
+  description String?
+  images      String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  recommendations Recommendation[]
+  essays          Essay[]
+  applications    Application[]
+
+  @@unique([title, from], name: "title_from")
+}
+
+model Recommendation {
+  id String @id @default(uuid())
+
+  userId        String
+  scholarshipId String
+
+  score  Int
+  reason String
+
+  createdAt DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id])
+  scholarship Scholarship @relation(fields: [scholarshipId], references: [id])
+}
+
 // ---------------
 model StudentActivity {
   id            String      @id @default(uuid())
@@ -427,17 +465,6 @@ model ProfileProgress {
   completedSections Json?
 
   updatedAt DateTime @updatedAt
-}
-
-model Scholarship {
-  id          String    @id @default(uuid())
-  title       String
-  provider    String?
-  awardAmount Int?
-  deadline    DateTime?
-
-  applications Application[]
-  essays       Essay[]
 }
 
 model Application {
