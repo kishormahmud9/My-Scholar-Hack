@@ -1,10 +1,44 @@
 import DevBuildError from "../lib/DevBuildError.js";
 
 const errorHandler = (err, req, res, next) => {
-    console.error("🔥 Error caught by middleware:", err);
-    if (err instanceof DevBuildError) {
-        return res.status(err.statusCode).json({ error: err.message });
-    }
-    res.status(500).json({ error: 'Internal Server Error' });
-}
-export default errorHandler
+  console.error("🔥 Error caught by middleware:", err);
+
+  // Custom application errors
+  if (err instanceof DevBuildError) {
+    return res.status(err.statusCode).json({
+      success: false,
+      message: err.message,
+    });
+  }
+
+  // JWT fallback safety (extra layer)
+  if (err.name === "TokenExpiredError") {
+    return res.status(401).json({
+      success: false,
+      message: "Token expired",
+    });
+  }
+
+  if (err.name === "JsonWebTokenError") {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid token",
+    });
+  }
+
+  // Prisma errors (optional, safer)
+  if (err.code && err.code.startsWith("P")) {
+    return res.status(400).json({
+      success: false,
+      message: "Database error",
+    });
+  }
+
+  // Unknown errors
+  return res.status(500).json({
+    success: false,
+    message: "Internal Server Error",
+  });
+};
+
+export default errorHandler;

@@ -41,7 +41,6 @@ app.use((req, res, next) => {
 // Routes
 app.use("/api", router);
 
-
 // Health check
 app.get("/", (req, res) => {
   res.send("<h1>My Scholar Hack API is running...⚡</h1>");
