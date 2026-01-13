@@ -27,6 +27,7 @@ import { EssaySpecificQuestionsRoutes } from "../modules/profiles/essaySpecificQ
 import { EducationRoutes } from "../modules/profiles/education/education.route.js";
 import { GenerateEssayRoutes } from "../modules/generateEssay/generateEssay.route.js";
 import { EssayComparisonRoutes } from "../modules/essayComparison/essayComparison.route.js";
+import { RecommendationRoutes } from "../modules/recommendation/recommendation.route.js";
 
 export const router = Router();
 
@@ -98,6 +99,10 @@ const moduleRoutes = [
     {
     path: "/essay-comparison",
     route: EssayComparisonRoutes,
+  },
+    {
+    path: "/essay-recommendation",
+    route: RecommendationRoutes,
   },
 
   // --------------
