@@ -8,12 +8,12 @@ generator client {
 }
 
 enum ApplicationStatus {
-  not_started
-  in_progress
-  submitted
-  won
-  rejected
+  PROCESSING
+  COMPLETED
+  FAILED
+  REJECTED
 }
+
 
 enum SubscriptionStatus {
   active
@@ -478,17 +478,25 @@ model ProfileProgress {
 }
 
 model Application {
-  id            String  @id @default(uuid())
+  id String @id @default(uuid())
+
   userId        String
-  scholarshipId String?
+  scholarshipId String
+  essayId       String
 
-  user        User         @relation(fields: [userId], references: [id])
-  scholarship Scholarship? @relation(fields: [scholarshipId], references: [id])
-
-  status ApplicationStatus @default(not_started)
+  status ApplicationStatus @default(PROCESSING)
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id])
+  scholarship Scholarship @relation(fields: [scholarshipId], references: [id])
+  essay       Essay       @relation(fields: [essayId], references: [id])
+
+  @@unique([userId, scholarshipId])
 }
+
+
 
 model Plan {
   id String @id @default(uuid())
