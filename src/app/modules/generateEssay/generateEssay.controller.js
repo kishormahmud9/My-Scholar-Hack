@@ -11,11 +11,12 @@ const getEssays = async (req, res, next) => {
     const prisma = req.prisma;
     const userId = req.user.userId;
 
-    const data = await EssayService.getByUserId(prisma, userId);
+    const result = await EssayService.getByUserId(prisma, userId, req.query);
 
     res.status(StatusCodes.OK).json({
       success: true,
-      data,
+      meta: result.meta,
+      data: result.data,
     });
   } catch (error) {
     next(error);
@@ -141,8 +142,8 @@ const updateEssayContent = async (req, res, next) => {
 
     // ✅ FIX HERE — normalize BEFORE saving
     contentFinal = normalizeEssayText(contentFinal);
-   // 5️⃣ Convert to HTML ONLY for response
-      const htmlContent = toHtml(contentFinal);
+    // 5️⃣ Convert to HTML ONLY for response
+    const htmlContent = toHtml(contentFinal);
     const result = await EssayService.updateEssayContent(
       prisma,
       id,
@@ -178,7 +179,7 @@ const deleteEssay = async (req, res, next) => {
 
     await EssayService.delete(prisma, id, userId);
 
-    res.status(StatusCodes.OK).json({
+    res.status(200).json({
       success: true,
       message: "Essay deleted successfully",
     });
