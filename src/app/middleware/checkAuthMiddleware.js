@@ -146,6 +146,15 @@ export const checkAuthMiddleware =
         next();
       } catch (error) {
         console.error("🔐 Auth Middleware Error:", error.message);
+
+        if (error.name === "TokenExpiredError") {
+          return next(new DevBuildError("Token expired", StatusCodes.UNAUTHORIZED));
+        }
+
+        if (error.name === "JsonWebTokenError") {
+          return next(new DevBuildError("Invalid token", StatusCodes.UNAUTHORIZED));
+        }
+
         next(error);
       }
     };

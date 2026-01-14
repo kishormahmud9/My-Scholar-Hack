@@ -18,7 +18,7 @@ router.get(
 );
 
 router.post(
-  "/create",
+  "/generate",
   checkAuthMiddleware(Role.STUDENT),
   EssayController.createEssay
 );
