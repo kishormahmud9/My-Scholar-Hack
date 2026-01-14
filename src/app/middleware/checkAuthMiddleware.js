@@ -1,112 +1,50 @@
-// import jwt from "jsonwebtoken";
-// import dotenv from "dotenv";
-// import { envVars } from "../config/env.js";
-
-// dotenv.config();
-
-// // ✅ Authentication Middleware
-// export const authenticateUser = (req, res, next) => {
-//     let token = req.header("Authorization");
-
-//     // Fallback to cookie if Authorization header is missing
-//     if (!token && req.cookies?.accessToken) {
-//         token = `Bearer ${req.cookies.accessToken}`;
-//     }
-
-//     if (!token) {
-//         return res.status(401).json({ message: "Access denied. No token provided." });
-//     }
-
-//     try {
-//         // Safe token extraction (handles "Bearer <token>", "Bearer<token>", or just "<token>")
-//         const jwtToken = token.replace(/^Bearer\s*/i, "");
-
-//         const decoded = jwt.verify(jwtToken, envVars.JWT_SECRET_TOKEN);
-//         req.user = decoded;
-//         next();
-//     } catch (error) {
-//         console.error("🔑 JWT Verification Error:", error.message);
-//         res.status(401).json({ message: "Invalid or expired token" });
-//     }
-// };
-
-// // ✅ Admin Middleware
-// export const authenticateAdmin = (req, res, next) => {
-//     authenticateUser(req, res, () => {
-//         if (req.user.role !== "admin") {
-//             return res.status(403).json({ message: "Access denied. Admins only." });
-//         }
-//         next();
-//     });
-// };
-
 import jwt from "jsonwebtoken";
+import { StatusCodes } from "http-status-codes";
 import prisma from "../prisma/client.js";
 import { envVars } from "../config/env.js";
+import DevBuildError from "../lib/DevBuildError.js";
 
 export const checkAuthMiddleware =
   (...allowedRoles) =>
-  async (req, res, next) => {
-    console.log("🔥 Auth middleware hit:", req.originalUrl);
+    async (req, res, next) => {
+      console.log("🔥 Auth middleware hit:", req.originalUrl);
 
-    try {
-      let token = req.headers.authorization;
+      try {
+        const token = req.headers.authorization;
 
-      if (!token) {
-        return res.status(401).json({
-          success: false,
-          message: "No token provided",
-        });
-      }
-
-      const jwtToken = token.replace(/^Bearer\s*/i, "");
-      const decoded = jwt.verify(jwtToken, envVars.JWT_SECRET_TOKEN);
-
-        if (!user) {
-          throw new DevBuildError(
-            "User does not exist",
-            StatusCodes.BAD_REQUEST
-          );
+        if (!token) {
+          throw new DevBuildError("No token provided", StatusCodes.UNAUTHORIZED);
         }
 
-        // Lazy create profile for students if missing
-        let profileId = user.profile?.id;
-        if (!profileId && user.role === "STUDENT") {
-          const newProfile = await prisma.userProfile.create({
-            data: {
-              userId: user.id,
-              fullName: user.name || "Student",
-            },
-          });
-          profileId = newProfile.id;
+        const jwtToken = token.replace(/^Bearer\s*/i, "");
+        const decoded = jwt.verify(jwtToken, envVars.JWT_SECRET_TOKEN);
+
+        // Fetch user and profile from database
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId || decoded.id },
+          include: {
+            profile: true,
+          },
+        });
+
+        if (!user) {
+          throw new DevBuildError("User does not exist", StatusCodes.UNAUTHORIZED);
         }
 
         if (!user.isVerified) {
-          throw new DevBuildError(
-            "User is not verified",
-            StatusCodes.BAD_REQUEST
-          );
+          throw new DevBuildError("User is not verified", StatusCodes.UNAUTHORIZED);
         }
 
         if (user.status === "BLOCKED" || user.status === "INACTIVE") {
-          throw new DevBuildError(
-            `User is ${user.status}`,
-            StatusCodes.BAD_REQUEST
-          );
+          throw new DevBuildError(`User is ${user.status.toLowerCase()}`, StatusCodes.FORBIDDEN);
         }
 
         if (user.isDeleted) {
-          throw new DevBuildError(
-            "User is deleted",
-            StatusCodes.BAD_REQUEST
-          );
+          throw new DevBuildError("User has been deleted", StatusCodes.GONE);
         }
 
         // Role check (if roles provided)
-        if (
-          allowedRoles.length &&
-          !allowedRoles.includes(user.role)
-        ) {
+        if (allowedRoles.length && !allowedRoles.includes(user.role)) {
           throw new DevBuildError(
             "You are not permitted to access this resource",
             StatusCodes.FORBIDDEN
@@ -116,10 +54,21 @@ export const checkAuthMiddleware =
         // Attach user info to request
         req.user = {
           userId: user.id,
-          userProfileId: profileId,
+          userProfileId: user.profile?.id,
           email: user.email,
           role: user.role,
         };
+
+        // Lazy create profile for students if missing (if business logic requires it here)
+        if (!req.user.userProfileId && user.role === "STUDENT") {
+          const newProfile = await prisma.userProfile.create({
+            data: {
+              userId: user.id,
+              fullName: user.name || "Student",
+            },
+          });
+          req.user.userProfileId = newProfile.id;
+        }
 
         next();
       } catch (error) {
@@ -135,13 +84,4 @@ export const checkAuthMiddleware =
 
         next(error);
       }
-
-      req.user = user;
-      next();
-    } catch (error) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid or expired token",
-      });
-    }
-  };
+    };
