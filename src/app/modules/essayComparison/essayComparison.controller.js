@@ -23,6 +23,7 @@ const compareEssays = async (req, res, next) => {
     }
 
     // FETCH ESSAYS (ownership check)
+
     const essays = await prisma.essay.findMany({
       where: {
         id: { in: [essayAId, essayBId] },
@@ -37,36 +38,36 @@ const compareEssays = async (req, res, next) => {
       });
     }
 
-    const essayA = essays.find(e => e.id === essayAId);
-    const essayB = essays.find(e => e.id === essayBId);
+    const essayA = essays.find((e) => e.id === essayAId);
+    const essayB = essays.find((e) => e.id === essayBId);
 
     // CALL AI
-    const aiResult =
-      await EssayComparisonService.compareEssaysByAI(
-        essayA.contentFinal,
-        essayB.contentFinal
-      );
+
+    const aiResult = await EssayComparisonService.compareEssaysByAI(
+      essayA.contentFinal,
+      essayB.contentFinal
+    );
 
     // SAVE RESULT
-    const savedResult =
-      await EssayComparisonService.create(prisma, {
-        userId,
-        userProfileId: profileId,
-        essayAId,
-        essayBId,
 
-        scoreA: aiResult.essayA.score,
-        strengthsA: aiResult.essayA.strengths,
-        improvementsA: aiResult.essayA.improvements,
+    const savedResult = await EssayComparisonService.create(prisma, {
+      userId,
+      userProfileId: profileId,
+      essayAId,
+      essayBId,
 
-        scoreB: aiResult.essayB.score,
-        strengthsB: aiResult.essayB.strengths,
-        improvementsB: aiResult.essayB.improvements,
+      scoreA: aiResult.essayA.score,
+      strengthsA: aiResult.essayA.strengths,
+      improvementsA: aiResult.essayA.improvements,
 
-        winner: aiResult.comparison.winner,
-        percentageDiff: aiResult.comparison.percentage,
-        reason: aiResult.comparison.reason,
-      });
+      scoreB: aiResult.essayB.score,
+      strengthsB: aiResult.essayB.strengths,
+      improvementsB: aiResult.essayB.improvements,
+
+      winner: aiResult.comparison.winner,
+      percentageDiff: aiResult.comparison.percentage,
+      reason: aiResult.comparison.reason,
+    });
 
     res.status(StatusCodes.CREATED).json({
       success: true,
@@ -83,8 +84,7 @@ const getComparisonHistory = async (req, res, next) => {
     const prisma = req.prisma;
     const userId = req.user.userId;
 
-    const data =
-      await EssayComparisonService.getByUserId(prisma, userId);
+    const data = await EssayComparisonService.getByUserId(prisma, userId);
 
     res.status(StatusCodes.OK).json({
       success: true,
@@ -101,8 +101,7 @@ const getComparisonById = async (req, res, next) => {
     const userId = req.user.userId;
     const { id } = req.params;
 
-    const data =
-      await EssayComparisonService.getById(prisma, id, userId);
+    const data = await EssayComparisonService.getById(prisma, id, userId);
 
     if (!data) {
       return res.status(StatusCodes.NOT_FOUND).json({

@@ -4,7 +4,6 @@ import { envVars } from "../../config/env.js";
 export const EssayService = {
 
   // GET all essays by user
-
   getByUserId: async (prisma, userId) => {
     return prisma.essay.findMany({
       where: { userId },

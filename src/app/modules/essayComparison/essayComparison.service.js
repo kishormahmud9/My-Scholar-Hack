@@ -11,23 +11,22 @@ const normalizeText = (text = "") => {
 
 export const EssayComparisonService = {
   // CALL AI COMPARE API
+
   compareEssaysByAI: async (essayA, essayB) => {
     const response = await axios.post(
-     envVars.AI_ESSAY_COMPARE_API_URL,
+      envVars.AI_ESSAY_COMPARE_API_URL,
       {
         essayA,
         essayB,
       },
       {
         timeout: 60000,
-        validateStatus: status => status < 500, // 👈 allow 4xx to be handled cleanly
+        validateStatus: (status) => status < 500, // 👈 allow 4xx to be handled cleanly
       }
     );
 
     if (response.status !== 200) {
-      throw new Error(
-        `AI compare API failed with status ${response.status}`
-      );
+      throw new Error(`AI compare API failed with status ${response.status}`);
     }
 
     return {
@@ -46,11 +45,13 @@ export const EssayComparisonService = {
   },
 
   // SAVE COMPARISON
+
   create: async (prisma, data) => {
     return prisma.essayComparison.create({ data });
   },
 
   // GET HISTORY
+
   getByUserId: async (prisma, userId) => {
     return prisma.essayComparison.findMany({
       where: { userId },
@@ -63,6 +64,7 @@ export const EssayComparisonService = {
   },
 
   // GET SINGLE RESULT
+
   getById: async (prisma, id, userId) => {
     return prisma.essayComparison.findFirst({
       where: { id, userId },
