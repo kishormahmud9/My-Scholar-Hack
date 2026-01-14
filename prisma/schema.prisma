@@ -311,6 +311,7 @@ model Essay {
   contentFinal String? @db.Text
   status       String  @default("draft")
   wordCount    Int?
+  isDeleted    Boolean @default(false)
 
   user           User              @relation(fields: [userId], references: [id])
   profile        UserProfile?      @relation(fields: [userProfileId], references: [id])

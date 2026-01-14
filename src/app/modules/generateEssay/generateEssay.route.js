@@ -30,8 +30,8 @@ router.patch(
   EssayController.updateEssayContent
 );
 
-router.delete(
-  "/:id",
+router.patch(
+  "/delete/:id",
   checkAuthMiddleware(Role.STUDENT),
   EssayController.deleteEssay
 );

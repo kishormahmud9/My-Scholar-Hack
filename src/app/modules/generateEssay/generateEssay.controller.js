@@ -179,7 +179,7 @@ const deleteEssay = async (req, res, next) => {
 
     await EssayService.delete(prisma, id, userId);
 
-    res.status(StatusCodes.OK).json({
+    res.status(200).json({
       success: true,
       message: "Essay deleted successfully",
     });
