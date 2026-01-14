@@ -3,7 +3,9 @@ import { EssayService } from "./generateEssay.service.js";
 import { normalizeEssayText } from "../../utils/normalizeEssayText.js";
 import { toHtml } from "../../utils/toHtml.js";
 
+
 // GET all essays
+
 const getEssays = async (req, res, next) => {
   try {
     const prisma = req.prisma;
@@ -21,7 +23,9 @@ const getEssays = async (req, res, next) => {
   }
 };
 
+
 // GET single essay
+
 const getEssayById = async (req, res, next) => {
   try {
     const prisma = req.prisma;
@@ -46,7 +50,9 @@ const getEssayById = async (req, res, next) => {
   }
 };
 
+
 // CREATE + AI GENERATE
+
 const createEssay = async (req, res, next) => {
   try {
     const prisma = req.prisma;
@@ -117,7 +123,9 @@ const createEssay = async (req, res, next) => {
   }
 };
 
+
 // EDIT essay text (USER)
+
 const updateEssayContent = async (req, res, next) => {
   try {
     const prisma = req.prisma;
@@ -160,7 +168,9 @@ const updateEssayContent = async (req, res, next) => {
 };
 
 
+
 // DELETE essay
+
 const deleteEssay = async (req, res, next) => {
   try {
     const prisma = req.prisma;

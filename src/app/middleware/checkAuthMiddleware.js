@@ -40,49 +40,27 @@
 //     });
 // };
 
-
-
 import jwt from "jsonwebtoken";
-import { StatusCodes } from "http-status-codes";
-import DevBuildError from "../lib/DevBuildError.js";
-import { envVars } from "../config/env.js";
 import prisma from "../prisma/client.js";
+import { envVars } from "../config/env.js";
 
-
-/**
- * Role-based Auth Middleware (Prisma)
- * Usage: checkAuth("STUDENT"), checkAuth("ADMIN")
- */
 export const checkAuthMiddleware =
   (...allowedRoles) =>
-    async (req, res, next) => {
-      try {
-        let token = req.headers.authorization;
+  async (req, res, next) => {
+    console.log("🔥 Auth middleware hit:", req.originalUrl);
 
-        // Fallback to cookie
-        if (!token && req.cookies?.accessToken) {
-          token = `Bearer ${req.cookies.accessToken}`;
-        }
+    try {
+      let token = req.headers.authorization;
 
-        if (!token) {
-          throw new DevBuildError(
-            "Access denied. No token provided.",
-            StatusCodes.UNAUTHORIZED
-          );
-        }
-
-        // Extract JWT safely
-        const jwtToken = token.replace(/^Bearer\s*/i, "");
-
-        // Verify token
-        const decoded = jwt.verify(jwtToken, envVars.JWT_SECRET_TOKEN);
-
-        // Fetch user from DB with profile
-        const userId = decoded.id || decoded.userId;
-        const user = await prisma.user.findUnique({
-          where: { id: userId },
-          include: { profile: true },
+      if (!token) {
+        return res.status(401).json({
+          success: false,
+          message: "No token provided",
         });
+      }
+
+      const jwtToken = token.replace(/^Bearer\s*/i, "");
+      const decoded = jwt.verify(jwtToken, envVars.JWT_SECRET_TOKEN);
 
         if (!user) {
           throw new DevBuildError(
@@ -157,5 +135,13 @@ export const checkAuthMiddleware =
 
         next(error);
       }
-    };
 
+      req.user = user;
+      next();
+    } catch (error) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired token",
+      });
+    }
+  };
