@@ -1,89 +1,91 @@
-import { StatusCodes } from "http-status-codes";
-import { RecommendationService } from "./recommendation.service.js";
+import { StatusCodes } from "http-status-codes"
+import { RecommendationService } from "./recommendation.service.js"
 
 const generateRecommendations = async (req, res, next) => {
   try {
-    const prisma = req.prisma;
-    const userId = req.user.userId;
-const aiResponse =
-  await RecommendationService.getRecommendationsFromAI(userId);
+    const prisma = req.prisma
+    const userId = req.user.userId
 
-const aiResults = aiResponse?.recommendations;
-console.log('aiResults > ',aiResults)
-if (!Array.isArray(aiResults)) {
-  return res.status(StatusCodes.BAD_REQUEST).json({
-    success: false,
-    message: "Invalid AI recommendation response",
-  });
-}
+    // CALL AI SERVICE
+    const aiResponse =
+      await RecommendationService.getRecommendationsFromAI(userId)
+
+    const aiResults = aiResponse?.recommendations
+console.log('ai results' , aiResults)
+    if (!Array.isArray(aiResults)) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: "Invalid AI recommendation response",
+      })
+    }
 
     // CLEAR OLD RECOMMENDATIONS
     await prisma.recommendation.deleteMany({
       where: { userId },
-    });
+    })
 
-    const recommendationData = [];
+    const recommendationData = []
 
-    // SAVE SCHOLARSHIPS + RECOMMENDATIONS
-   for (const item of aiResults) {
-  const scholarship =
-    await RecommendationService.upsertScholarship(
-      prisma,
-      {
-        title: item.title,
-        type: item.type,
-        amount: item.amount ?? 0,
-        from: item.from ?? "AI_RECOMMENDATION",
-        deadline: item.deadline
-          ? new Date(item.deadline)
-          : null,
-        description: item.description ?? null,
-        images: item.images ?? [],
-      }
-    );
+    // UPSERT SCHOLARSHIPS + PREPARE RECOMMENDATIONS
+    for (const item of aiResults) {
+      const scholarship =
+        await RecommendationService.upsertScholarship(prisma, {
+          title: item.title,
+          type: item.type,
+          amount: item.amount ?? 0,
+          from: item.from ?? "AI_RECOMMENDATION",
+          deadline: item.deadline ? new Date(item.deadline) : null,
+          description: item.description ?? null,
+          images: item.images ?? [],
+        })
 
-  recommendationData.push({
-    userId,
-    scholarshipId: scholarship.id,
-    score: item.score ?? 80,
-    reason: item.reason,
-  });
-}
+      recommendationData.push({
+        userId,
+        scholarshipId: scholarship.id,
+        score: item.score ?? 80,
+        reason: item.reason ?? null,
+      })
+    }
 
     // SAVE RECOMMENDATIONS
-    await RecommendationService.createMany(
-      prisma,
-      recommendationData
-    );
+    if (recommendationData.length) {
+      await RecommendationService.createMany(prisma, recommendationData)
+    }
 
     res.status(StatusCodes.CREATED).json({
       success: true,
       message: "Recommendations generated successfully",
       data: recommendationData,
-    });
+    })
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
 
 const getUserRecommendations = async (req, res, next) => {
   try {
-    const prisma = req.prisma;
-    const userId = req.user.userId;
+    const prisma = req.prisma
+    const userId = req.user.userId
 
-    const data =
-      await RecommendationService.getByUserId(prisma, userId);
+    // ✅ PASS QUERY PARAMS TO SERVICE
+    const result =
+      await RecommendationService.getByUserId(
+        prisma,
+        userId,
+        req.query
+      )
 
     res.status(StatusCodes.OK).json({
       success: true,
-      data,
-    });
+      meta: result.meta,
+      data: result.data,
+    })
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
 
 export const RecommendationController = {
   generateRecommendations,
   getUserRecommendations,
-};
+}

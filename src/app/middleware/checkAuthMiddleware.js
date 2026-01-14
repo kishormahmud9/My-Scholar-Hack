@@ -62,22 +62,78 @@ export const checkAuthMiddleware =
       const jwtToken = token.replace(/^Bearer\s*/i, "");
       const decoded = jwt.verify(jwtToken, envVars.JWT_SECRET_TOKEN);
 
-      const user = await prisma.user.findUnique({
-        where: { id: decoded.id },
-      });
+        if (!user) {
+          throw new DevBuildError(
+            "User does not exist",
+            StatusCodes.BAD_REQUEST
+          );
+        }
 
-      if (!user) {
-        return res.status(401).json({
-          success: false,
-          message: "User not found",
-        });
-      }
+        // Lazy create profile for students if missing
+        let profileId = user.profile?.id;
+        if (!profileId && user.role === "STUDENT") {
+          const newProfile = await prisma.userProfile.create({
+            data: {
+              userId: user.id,
+              fullName: user.name || "Student",
+            },
+          });
+          profileId = newProfile.id;
+        }
 
-      if (allowedRoles.length && !allowedRoles.includes(user.role)) {
-        return res.status(403).json({
-          success: false,
-          message: "Forbidden",
-        });
+        if (!user.isVerified) {
+          throw new DevBuildError(
+            "User is not verified",
+            StatusCodes.BAD_REQUEST
+          );
+        }
+
+        if (user.status === "BLOCKED" || user.status === "INACTIVE") {
+          throw new DevBuildError(
+            `User is ${user.status}`,
+            StatusCodes.BAD_REQUEST
+          );
+        }
+
+        if (user.isDeleted) {
+          throw new DevBuildError(
+            "User is deleted",
+            StatusCodes.BAD_REQUEST
+          );
+        }
+
+        // Role check (if roles provided)
+        if (
+          allowedRoles.length &&
+          !allowedRoles.includes(user.role)
+        ) {
+          throw new DevBuildError(
+            "You are not permitted to access this resource",
+            StatusCodes.FORBIDDEN
+          );
+        }
+
+        // Attach user info to request
+        req.user = {
+          userId: user.id,
+          userProfileId: profileId,
+          email: user.email,
+          role: user.role,
+        };
+
+        next();
+      } catch (error) {
+        console.error("🔐 Auth Middleware Error:", error.message);
+
+        if (error.name === "TokenExpiredError") {
+          return next(new DevBuildError("Token expired", StatusCodes.UNAUTHORIZED));
+        }
+
+        if (error.name === "JsonWebTokenError") {
+          return next(new DevBuildError("Invalid token", StatusCodes.UNAUTHORIZED));
+        }
+
+        next(error);
       }
 
       req.user = user;
