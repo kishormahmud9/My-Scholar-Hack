@@ -11,7 +11,7 @@ const generateRecommendations = async (req, res, next) => {
       await RecommendationService.getRecommendationsFromAI(userId)
 
     const aiResults = aiResponse?.recommendations
-console.log('ai results' , aiResults)
+    console.log('ai results', aiResults)
     if (!Array.isArray(aiResults)) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
@@ -33,7 +33,7 @@ console.log('ai results' , aiResults)
           title: item.title,
           type: item.type,
           amount: item.amount ?? 0,
-          from: item.from ?? "AI_RECOMMENDATION",
+          provider: item.from ?? "AI_RECOMMENDATION",
           deadline: item.deadline ? new Date(item.deadline) : null,
           description: item.description ?? null,
           images: item.images ?? [],

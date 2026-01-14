@@ -59,6 +59,14 @@ enum SchoolType {
   OTHER
 }
 
+enum EssayStatus {
+  GENERATING
+  SAVED
+  DELETED
+  FAILED
+  EDITED
+}
+
 model User {
   id           String  @id @default(cuid())
   email        String  @unique
@@ -307,11 +315,12 @@ model Essay {
   scholarshipId String?
 
   title        String?
-  prompt       String? @db.Text
-  contentFinal String? @db.Text
-  status       String  @default("draft")
+  prompt       String?     @db.Text
+  contentFinal String?     @db.Text
+  status       EssayStatus @default(GENERATING)
+  subject      String?
   wordCount    Int?
-  isDeleted    Boolean @default(false)
+  isDeleted    Boolean     @default(false)
 
   user           User              @relation(fields: [userId], references: [id])
   profile        UserProfile?      @relation(fields: [userProfileId], references: [id])
@@ -354,10 +363,10 @@ model EssayComparison {
 model Scholarship {
   id String @id @default(uuid())
 
-  title  String
-  type   String
-  amount Int
-  from   String
+  title    String
+  type     String
+  amount   Int
+  provider String
 
   deadline    DateTime?
   description String?
@@ -370,7 +379,7 @@ model Scholarship {
   essays          Essay[]
   applications    Application[]
 
-  @@unique([title, from], name: "title_from")
+  @@unique([title, provider], name: "title_provider")
 }
 
 model Recommendation {

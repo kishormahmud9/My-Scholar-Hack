@@ -1,1 +1,1 @@
-export const scholarshipSearchableFields = ["title", "from", "description"]
+export const scholarshipSearchableFields = ["title", "provider", "description"]

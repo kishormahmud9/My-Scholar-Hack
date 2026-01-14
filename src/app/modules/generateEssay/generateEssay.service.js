@@ -5,16 +5,29 @@ import {
   essaySearchableFields,
 } from "./generateEssay.constant.js";
 
+// src/constants/essayStatus.js
+export const ESSAY_STATUS = {
+  GENERATING: "GENERATING",
+  SAVED: "SAVED",
+  FAILED: "FAILED",
+  EDITED: "EDITED",
+};
+
+
 export const EssayService = {
 
   // GET all essays by user
   getByUserId: async (prisma, userId, query) => {
     const builder = new QueryBuilder(query)
-      .search(essaySearchableFields)
+      .search([
+        ...essaySearchableFields
+      ])
       .filter({
         scholarship: ["type", "from"],
       })
-      .sort("-createdAt")
+      .sort("-createdAt", {
+        scholarship: ["type", "from"],
+      })
       .fields()
       .paginate();
 
@@ -64,7 +77,7 @@ export const EssayService = {
     return prisma.essay.create({
       data: {
         ...data,
-        status: "generating",
+        status: ESSAY_STATUS.GENERATING,
         isDeleted: false,
       },
     });
@@ -103,7 +116,7 @@ export const EssayService = {
       data: {
         contentFinal,
         wordCount: contentFinal.trim().split(/\s+/).length,
-        status: "edited",
+        status: ESSAY_STATUS.EDITED,
         updatedAt: new Date(),
       },
     });

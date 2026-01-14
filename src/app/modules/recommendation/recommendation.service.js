@@ -10,8 +10,14 @@ import { scholarshipSearchableFields } from "./recommendation.constant.js"
 export const RecommendationService = {
   // CALL AI RECOMMENDATION API
   getRecommendationsFromAI: async (userId) => {
+    // Robust URL construction to avoid double slashes
+    const baseUrl = envVars.AI_RECOMMENDATION_API_URL.replace(/\/$/, "");
+    const url = `${baseUrl}/${userId}`;
+    console.log("🚀 Calling AI Recommendation service at:", url);
+
+    // Try GET first as per original logic, but with more debugging
     const response = await axios.get(
-      `${envVars.AI_RECOMMENDATION_API_URL}/${userId}`,
+      url,
       {
         timeout: 60000,
         headers: {
@@ -27,9 +33,9 @@ export const RecommendationService = {
   upsertScholarship: async (prisma, scholarship) => {
     return prisma.scholarship.upsert({
       where: {
-        title_from: {
+        title_provider: {
           title: scholarship.title,
-          from: scholarship.from,
+          provider: scholarship.provider,
         },
       },
       update: scholarship,
@@ -51,10 +57,10 @@ export const RecommendationService = {
         { scholarship: scholarshipSearchableFields },
       ])
       .filter({
-        scholarship: ["type", "amount", "from"],
+        scholarship: ["type", "amount", "provider"],
       })
       .sort("-createdAt", {
-        scholarship: ["type", "amount", "from"],
+        scholarship: ["type", "amount", "provider"],
       })
       .fields()
       .paginate();
