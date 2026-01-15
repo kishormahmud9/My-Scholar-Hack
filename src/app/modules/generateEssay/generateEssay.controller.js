@@ -2,6 +2,7 @@ import { StatusCodes } from "http-status-codes";
 import { EssayService } from "./generateEssay.service.js";
 import { normalizeEssayText } from "../../utils/normalizeEssayText.js";
 import { toHtml } from "../../utils/toHtml.js";
+import { ESSAY_STATUS } from "./generateEssay.service.js";
 
 
 // GET all essays
@@ -59,7 +60,7 @@ const createEssay = async (req, res, next) => {
     const userId = req.user.userId;
     const profileId = req.user.userProfileId;
     const scholarshipId = req.user.scholarshipId;
-    const { title, prompt } = req.body;
+    const { subject, title, prompt } = req.body;
 
     if (!prompt) {
       return res.status(StatusCodes.BAD_REQUEST).json({
@@ -71,6 +72,7 @@ const createEssay = async (req, res, next) => {
     // 1️⃣ Save prompt
     const essay = await EssayService.createPrompt(prisma, {
       userId,
+      subject,
       title,
       prompt,
       userProfileId: profileId,
@@ -89,11 +91,16 @@ const createEssay = async (req, res, next) => {
       const cleanedContent = normalizeEssayText(aiResponse.essay);
 
       // 4️⃣ Save CLEAN TEXT ONLY
-      const updatedEssay = await EssayService.updateEssay(prisma, essay.id, {
-        contentFinal: cleanedContent,
-        wordCount: cleanedContent.split(/\s+/).length,
-        status: "completed",
-      });
+      const updatedEssay = await EssayService.updateEssay(
+        prisma,
+        essay.id,
+        userId,
+        {
+          contentFinal: cleanedContent,
+          wordCount: cleanedContent.split(/\s+/).length,
+          status: ESSAY_STATUS.SAVED,
+        }
+      );
 
       // 5️⃣ Convert to HTML ONLY for response
       const htmlContent = toHtml(updatedEssay.contentFinal);
@@ -109,8 +116,8 @@ const createEssay = async (req, res, next) => {
     } catch (aiError) {
       console.error("AI ERROR:", aiError);
 
-      await EssayService.updateEssay(prisma, essay.id, {
-        status: "failed",
+      await EssayService.updateEssay(prisma, essay.id, userId, {
+        status: ESSAY_STATUS.FAILED,
       });
 
       res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
@@ -144,11 +151,12 @@ const updateEssayContent = async (req, res, next) => {
     contentFinal = normalizeEssayText(contentFinal);
     // 5️⃣ Convert to HTML ONLY for response
     const htmlContent = toHtml(contentFinal);
+    // ✅ FIX: Pass clean contentFinal, NOT htmlContent
     const result = await EssayService.updateEssayContent(
       prisma,
       id,
       userId,
-      contentFinal = htmlContent
+      contentFinal
     );
 
     if (result.count === 0) {
