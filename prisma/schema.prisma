@@ -544,6 +544,7 @@ model Subscription {
 
   status SubscriptionStatus @default(active)
 
+  expiresAt DateTime?   // 🔥 REQUIRED
   createdAt DateTime @default(now())
 }
 

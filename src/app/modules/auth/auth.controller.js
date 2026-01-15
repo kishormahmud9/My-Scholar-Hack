@@ -8,15 +8,12 @@ import { setAuthCookie } from "../../utils/setCookie.js";
 import { StatusCodes } from "http-status-codes";
 import passport from "passport";
 
-
 const credentialLogin = async (req, res, next) => {
   try {
     passport.authenticate("local", async (err, user, info) => {
       try {
         if (err) {
-          return next(
-            new DevBuildError(err, StatusCodes.UNAUTHORIZED)
-          );
+          return next(new DevBuildError(err, StatusCodes.UNAUTHORIZED));
         }
 
         if (!user) {
@@ -32,10 +29,7 @@ const credentialLogin = async (req, res, next) => {
         const userToken = await createUserTokens(user);
 
         // Remove sensitive fields before sending user
-        const {
-          passwordHash,
-          ...saveUser
-        } = user;
+        const { passwordHash, ...saveUser } = user;
 
         // Set cookies
         setAuthCookie(res, userToken);
@@ -76,10 +70,7 @@ const getNewAccessToken = async (req, res, next) => {
 
     let decoded;
     try {
-      decoded = jwt.verify(
-        refreshToken,
-        envVars.JWT_REFRESH_TOKEN
-      );
+      decoded = jwt.verify(refreshToken, envVars.JWT_REFRESH_TOKEN);
     } catch (err) {
       throw new DevBuildError("Invalid refresh token", StatusCodes.FORBIDDEN);
     }
@@ -207,8 +198,6 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
-
-
 const googleCallback = async (req, res, next) => {
   try {
     let redirectTo = req.query.state ? String(req.query.state) : "";
@@ -237,5 +226,11 @@ const googleCallback = async (req, res, next) => {
   }
 };
 
-
-export const AuthController = { credentialLogin, getNewAccessToken, logout, forgotPassword, resetPassword, googleCallback };
+export const AuthController = {
+  credentialLogin,
+  getNewAccessToken,
+  logout,
+  forgotPassword,
+  resetPassword,
+  googleCallback,
+};
