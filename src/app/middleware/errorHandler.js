@@ -1,35 +1,44 @@
 import DevBuildError from "../lib/DevBuildError.js";
 
 const errorHandler = (err, req, res, next) => {
-    let statusCode = err.statusCode || 500;
-    let message = err.message || 'Internal Server Error';
+  console.error("🔥 Error caught by middleware:", err);
 
-    // Handle Axios Errors
-    if (err.isAxiosError) {
-        statusCode = err.response?.status || 502; // Bad Gateway if no response
-        message = err.response?.data?.message || err.message || 'Error from external service';
-    }
-
-    // Handle AggregateError (often from Axios connection issues)
-    if (err.name === 'AggregateError') {
-        statusCode = 502;
-        message = 'External service connection failed';
-    }
-
-    console.error("🔥 Error caught by middleware:", {
-        message,
-        name: err.name,
-        statusCode,
-        stack: err.stack,
+  // Custom application errors
+  if (err instanceof DevBuildError) {
+    return res.status(err.statusCode).json({
+      success: false,
+      message: err.message,
     });
+  }
 
-    res.status(statusCode).json({
-        success: false,
-        error: message,
-        ...(process.env.NODE_ENV === 'development' && {
-            stack: err.stack,
-            details: err.response?.data
-        })
+  // JWT fallback safety (extra layer)
+  if (err.name === "TokenExpiredError") {
+    return res.status(401).json({
+      success: false,
+      message: "Token expired",
     });
-}
-export default errorHandler
+  }
+
+  if (err.name === "JsonWebTokenError") {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid token",
+    });
+  }
+
+  // Prisma errors (optional, safer)
+  if (err.code && err.code.startsWith("P")) {
+    return res.status(400).json({
+      success: false,
+      message: "Database error",
+    });
+  }
+
+  // Unknown errors
+  return res.status(500).json({
+    success: false,
+    message: "Internal Server Error",
+  });
+};
+
+export default errorHandler;

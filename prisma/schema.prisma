@@ -14,7 +14,6 @@ enum ApplicationStatus {
   REJECTED
 }
 
-
 enum SubscriptionStatus {
   active
   trial
@@ -328,8 +327,9 @@ model Essay {
   comparisonsAsA EssayComparison[] @relation("EssayA")
   comparisonsAsB EssayComparison[] @relation("EssayB")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  applications Application[]
 }
 
 model EssayComparison {
@@ -495,8 +495,6 @@ model Application {
 
   @@unique([userId, scholarshipId])
 }
-
-
 
 model Plan {
   id String @id @default(uuid())
