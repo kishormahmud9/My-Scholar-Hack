@@ -1,10 +1,12 @@
 // ES MODULE ✅
 
-export const ApplicationService = {
+import { StatusCodes } from "http-status-codes";
+import { QueryBuilder } from "../../utils/QueryBuilder.js";
 
+export const ApplicationService = {
   // CREATE application
 
-  createApplication: async (prisma, userId, essayId, scholarshipId) => {
+  createApplication: async (res,prisma, userId, essayId, scholarshipId) => {
     // 1️⃣ Validate essay ownership
     const essay = await prisma.essay.findFirst({
       where: {
@@ -15,9 +17,11 @@ export const ApplicationService = {
     });
 
     if (!essay) {
-      const error = new Error("Essay not found or not authorized");
-      error.statusCode = 404;
-      throw error;
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        message: "Essay not found or not authorized",
+        data: {},
+      });
     }
 
     // 2️⃣ Validate scholarship
@@ -26,9 +30,11 @@ export const ApplicationService = {
     });
 
     if (!scholarship) {
-      const error = new Error("Scholarship not found");
-      error.statusCode = 404;
-      throw error;
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        message: "Scholarship not found",
+        data: {},
+      });
     }
 
     // 3️⃣ Prevent duplicate application
@@ -40,7 +46,11 @@ export const ApplicationService = {
     });
 
     if (existing) {
-      return ("Already applied to this scholarship")
+      return res.status(StatusCodes.CONFLICT).json({
+        success: false,
+        message: "Already applied to this scholarship",
+        data: {},
+      });
     }
 
     // 4️⃣ Create application with snapshots
@@ -58,13 +68,46 @@ export const ApplicationService = {
     });
   },
 
-
   // GET applications by user
 
-  getByUserId: async (prisma, userId) => {
-    return prisma.application.findMany({
-      where: { userId },
-      include: {
+  getByUserId: async (prisma, userId, query) => {
+    const builder = new QueryBuilder(query)
+      // 🔍 search on related fields
+      .search([{ scholarship: ["title"] }, { essay: ["title"] }])
+      // 🔎 filter on related models
+      .filter("status", { scholarship: ["title"] })
+      // ↕ sort (supports -createdAt, scholarship.from, etc.)
+      .sort("-createdAt", {
+        scholarship: ["deadline"],
+      })
+      .fields()
+      .paginate();
+
+    const prismaQuery = builder.build();
+
+    // 🔐 scope to logged-in user
+    prismaQuery.where = {
+      ...(prismaQuery.where || {}),
+      userId,
+    };
+
+    // 🔄 include relations (select/include-safe)
+    if (prismaQuery.select) {
+      prismaQuery.select.scholarship = {
+        select: {
+          title: true,
+          amount: true,
+          deadline: true,
+        },
+      };
+
+      prismaQuery.select.essay = {
+        select: {
+          title: true,
+        },
+      };
+    } else {
+      prismaQuery.include = {
         scholarship: {
           select: {
             title: true,
@@ -77,11 +120,22 @@ export const ApplicationService = {
             title: true,
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-  },
+      };
+    }
 
+    // 📦 fetch data
+    const data = await prisma.application.findMany(prismaQuery);
+
+    // 📊 total count (for pagination meta)
+    const total = await prisma.application.count({
+      where: prismaQuery.where,
+    });
+
+    return {
+      data,
+      meta: builder.getMeta(total),
+    };
+  },
 
   // UPDATE application status
 

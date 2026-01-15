@@ -9,6 +9,7 @@ const createApplication = async (req, res, next) => {
     const { essayId, scholarshipId } = req.body;
 
     const result = await ApplicationService.createApplication(
+      res,
       prisma,
       userId,
       essayId,
@@ -26,21 +27,29 @@ const createApplication = async (req, res, next) => {
 };
 
 // GET logged-in user's applications
+
 const getMyApplications = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.id;
+  const userId = req.user.id;
 
-    const result = await ApplicationService.getByUserId(prisma, userId);
+    // 🔥 pass req.query
+    const result = await ApplicationService.getByUserId(
+      prisma,
+      userId,
+      req.query
+    );
 
     res.status(StatusCodes.OK).json({
       success: true,
-      data: result,
+      data: result.data,
+      meta: result.meta,
     });
   } catch (error) {
     next(error);
   }
 };
+
 
 // UPDATE application status
 const updateApplicationStatus = async (req, res, next) => {

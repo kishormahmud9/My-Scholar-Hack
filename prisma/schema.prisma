@@ -413,6 +413,11 @@ model Application {
   scholarshipId  String
   scholarship    Scholarship @relation(fields: [scholarshipId], references: [id])
 
+  // snapshots (optional but powerful)
+  essayTitle     String?
+  scholarshipTitle String
+  scholarshipAmount Int?
+  scholarshipDeadline DateTime?
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
