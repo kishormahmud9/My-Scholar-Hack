@@ -29,6 +29,7 @@ import { GenerateEssayRoutes } from "../modules/generateEssay/generateEssay.rout
 import { EssayComparisonRoutes } from "../modules/essayComparison/essayComparison.route.js";
 import { RecommendationRoutes } from "../modules/recommendation/recommendation.route.js";
 import { ApplicationRoute } from "../modules/application/application.route.js";
+import { PaymentRoutes } from "../modules/payment/payment.route.js";
 
 export const router = Router();
 
@@ -89,23 +90,23 @@ const moduleRoutes = [
     path: "/profile/essay-specific-questions",
     route: EssaySpecificQuestionsRoutes,
   },
-    {
+  {
     path: "/profile/education",
     route: EducationRoutes,
   },
-    {
+  {
     path: "/generate-essay",
     route: GenerateEssayRoutes,
   },
-    {
+  {
     path: "/essay-comparison",
     route: EssayComparisonRoutes,
   },
-    {
+  {
     path: "/essay-recommendation",
     route: RecommendationRoutes,
   },
-    {
+  {
     path: "/application",
     route: ApplicationRoute,
   },
@@ -152,6 +153,11 @@ const moduleRoutes = [
   {
     path: "/admin",
     route: AdminRoutes,
+  },
+
+  {
+    path: "/payment",
+    route: PaymentRoutes,
   },
 ];
 
