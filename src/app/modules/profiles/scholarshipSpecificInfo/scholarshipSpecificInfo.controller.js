@@ -4,7 +4,7 @@ import { ScholarshipSpecificInfoService } from "./scholarshipSpecificInfo.servic
 const getScholarshipSpecificInfo = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const profile = await prisma.userProfile.findUnique({
       where: { userId },
@@ -35,7 +35,7 @@ const getScholarshipSpecificInfo = async (req, res, next) => {
 const saveScholarshipSpecificInfo = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const profile = await prisma.userProfile.findUnique({
       where: { userId },

@@ -32,7 +32,7 @@ const registerUser = async (req, res, next) => {
 const getUserInfo = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.params.id || req.user.userId;
+    const userId = req.params.id || req.user.id;
 
     const user = await UserService.findUserInfoById(prisma, userId);
 

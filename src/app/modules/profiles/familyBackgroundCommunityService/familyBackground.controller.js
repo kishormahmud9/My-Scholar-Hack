@@ -4,7 +4,7 @@ import { FamilyBackgroundService } from "./familyBackground.service.js";
 const getFamilyBackground = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const profile = await prisma.userProfile.findUnique({
       where: { userId },
@@ -35,7 +35,7 @@ const getFamilyBackground = async (req, res, next) => {
 const saveFamilyBackground = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const profile = await prisma.userProfile.findUnique({
       where: { userId },

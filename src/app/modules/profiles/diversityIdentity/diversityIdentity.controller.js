@@ -4,7 +4,7 @@ import { DiversityIdentityService } from "./diversityIdentity.service.js";
 const getDiversityIdentity = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const profile = await prisma.userProfile.findUnique({
       where: { userId },
@@ -35,7 +35,7 @@ const getDiversityIdentity = async (req, res, next) => {
 const saveDiversityIdentity = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const profile = await prisma.userProfile.findUnique({
       where: { userId },

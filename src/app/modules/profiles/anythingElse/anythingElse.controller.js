@@ -4,7 +4,7 @@ import { AnythingElseService } from "./anythingElse.service.js";
 const getAnythingElse = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const profile = await prisma.userProfile.findUnique({
       where: { userId },
@@ -35,7 +35,7 @@ const getAnythingElse = async (req, res, next) => {
 const saveAnythingElse = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const profile = await prisma.userProfile.findUnique({
       where: { userId },

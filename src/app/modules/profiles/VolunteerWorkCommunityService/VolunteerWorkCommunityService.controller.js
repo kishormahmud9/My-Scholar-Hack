@@ -4,7 +4,7 @@ import { VolunteerService } from "./VolunteerWorkCommunityService.service.js";
 const getVolunteer = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const profile = await prisma.userProfile.findUnique({
       where: { userId },
@@ -34,7 +34,7 @@ const getVolunteer = async (req, res, next) => {
 const saveVolunteer = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const {
       whatVolunteerWork,

@@ -4,7 +4,7 @@ import { RecommendationService } from "./recommendation.service.js"
 const generateRecommendations = async (req, res, next) => {
   try {
     const prisma = req.prisma
-    const userId = req.user.userId
+    const userId = req.user.id
 
     // CALL AI SERVICE
     const aiResponse =
@@ -65,7 +65,7 @@ const generateRecommendations = async (req, res, next) => {
 const getUserRecommendations = async (req, res, next) => {
   try {
     const prisma = req.prisma
-    const userId = req.user.userId
+    const userId = req.user.id
 
     // ✅ PASS QUERY PARAMS TO SERVICE
     const result =

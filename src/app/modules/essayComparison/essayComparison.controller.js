@@ -4,7 +4,7 @@ import { EssayComparisonService } from "./essayComparison.service.js";
 const compareEssays = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const profileId = req.user.userProfileId;
     const { essayAId, essayBId } = req.body;
 
@@ -82,7 +82,7 @@ const compareEssays = async (req, res, next) => {
 const getComparisonHistory = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const data = await EssayComparisonService.getByUserId(prisma, userId);
 
@@ -98,7 +98,7 @@ const getComparisonHistory = async (req, res, next) => {
 const getComparisonById = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { id } = req.params;
 
     const data = await EssayComparisonService.getById(prisma, id, userId);

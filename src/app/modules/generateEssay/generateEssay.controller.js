@@ -10,7 +10,7 @@ import { ESSAY_STATUS } from "./generateEssay.service.js";
 const getEssays = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const result = await EssayService.getByUserId(prisma, userId, req.query);
 
@@ -30,7 +30,7 @@ const getEssays = async (req, res, next) => {
 const getEssayById = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { id } = req.params;
 
     const data = await EssayService.getById(prisma, id, userId);
@@ -57,7 +57,7 @@ const getEssayById = async (req, res, next) => {
 const createEssay = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const profileId = req.user.userProfileId;
     const scholarshipId = req.user.scholarshipId;
     const { subject, title, prompt } = req.body;
@@ -136,7 +136,7 @@ const createEssay = async (req, res, next) => {
 const updateEssayContent = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { id } = req.params;
     let { contentFinal } = req.body;
 
@@ -182,7 +182,7 @@ const updateEssayContent = async (req, res, next) => {
 const deleteEssay = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { id } = req.params;
 
     await EssayService.delete(prisma, id, userId);

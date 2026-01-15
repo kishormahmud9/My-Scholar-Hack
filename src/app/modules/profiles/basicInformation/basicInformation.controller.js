@@ -4,7 +4,7 @@ import { BasicInformationService } from "./basicInformation.service.js";
 const getBasicInformation = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const profile = await prisma.userProfile.findUnique({
       where: { userId },
@@ -35,7 +35,7 @@ const getBasicInformation = async (req, res, next) => {
 const saveBasicInformation = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const profile = await prisma.userProfile.findUnique({
       where: { userId },

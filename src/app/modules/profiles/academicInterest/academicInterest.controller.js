@@ -4,7 +4,7 @@ import { AcademicInterestService } from "./academicInterest.service.js";
 const getAcademicInterest = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const profile = await prisma.userProfile.findUnique({
       where: { userId },
@@ -35,7 +35,7 @@ const getAcademicInterest = async (req, res, next) => {
 const saveAcademicInterest = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { intendedMajor, whyThisField, careerGoals } = req.body;
 
     if (!intendedMajor || !whyThisField || !careerGoals) {

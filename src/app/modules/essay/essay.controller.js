@@ -43,7 +43,7 @@ const getSpecificQuestions = async (req, res) => {
 const createEssay = async (req, res) => {
     try {
         const prisma = req.prisma;
-        const userId = req.user.userId;
+        const userId = req.user.id;
         const userProfileId = req.user.userProfileId || req.body.userProfileId;
         const { title, prompt, contentDraft } = req.body;
 

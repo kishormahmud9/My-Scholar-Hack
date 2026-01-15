@@ -4,7 +4,7 @@ import { ExtracurricularActivityService } from "./extraCurricularActivities.serv
 const getExtracurricularActivity = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const profile = await prisma.userProfile.findUnique({
       where: { userId },
@@ -35,7 +35,7 @@ const getExtracurricularActivity = async (req, res, next) => {
 const saveExtracurricularActivity = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { activityName, yearsInvolved, leadership } = req.body;
 
     if (!activityName || !yearsInvolved) {
