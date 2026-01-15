@@ -114,8 +114,9 @@ model UserProfile {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id])
 
-  fullName      String
+  fullName      String?
   profilePicture String?
+  filePath String?
   bio           String?
   state         String?
   gpa           Float?

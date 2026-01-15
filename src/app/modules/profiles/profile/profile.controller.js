@@ -3,18 +3,52 @@ import path from "path";
 import { ProfileService } from "./profile.service.js";
 
 
+
 // const upsertUserProfile = async (req, res) => {
 //   try {
 //     const prisma = req.prisma;
 //     const userId = req.user?.id || req.body.userId;
 
 //     if (!userId) {
-//       return res.status(400).json({ success: false, message: "userId required" });
+//       return res.status(400).json({
+//         success: false,
+//         message: "userId required",
+//       });
 //     }
 
 //     const { userId: _, ...data } = req.body;
+//     const user = req.user;
 
-//     const profile = await ProfileService.upsertByUserId(prisma, userId, data);
+//     // 📸 handle uploaded file
+//     if (req.file) {
+//       data.profilePicture = req.file.filename;
+//       data.filePath = req.file.path;
+//     }
+
+//     const oldProfile = await prisma.userProfile.findUnique({
+//       where: { userId },
+//     });
+
+//     // 👤 required fullName only on first create
+//     if (!data.fullName && !oldProfile) {
+//       data.fullName = user.name || "User";
+//     }
+
+//     // 🧹 remove undefined fields
+//     Object.keys(data).forEach((key) => {
+//       if (data[key] === undefined) delete data[key];
+//     });
+
+//     const profile = await ProfileService.upsertByUserId(
+//       prisma,
+//       userId,
+//       data
+//     );
+
+//     // 🗑️ delete old file AFTER successful upsert
+//     if (oldProfile?.filePath && req.file) {
+//       fs.unlink(oldProfile.filePath, () => {});
+//     }
 
 //     res.json({
 //       success: true,
@@ -29,10 +63,12 @@ import { ProfileService } from "./profile.service.js";
 //     });
 //   }
 // };
+
 const upsertUserProfile = async (req, res) => {
   try {
     const prisma = req.prisma;
     const userId = req.user?.id || req.body.userId;
+    const user = req.user;
 
     if (!userId) {
       return res.status(400).json({
@@ -43,44 +79,59 @@ const upsertUserProfile = async (req, res) => {
 
     const { userId: _, ...data } = req.body;
 
-    // 👇 attach uploaded file (if exists)
+    // 📸 Handle uploaded file
     if (req.file) {
       data.profilePicture = req.file.filename;
-      // OR req.file.path if you prefer full path
+
+      // ✅ OS-safe, DB-safe path (ALWAYS use /)
+      data.filePath = `uploads/profile/${req.file.filename}`;
     }
 
+    // 🔍 Check existing profile
     const oldProfile = await prisma.userProfile.findUnique({
       where: { userId },
     });
 
-    if (oldProfile?.profilePicture && req.file) {
-      fs.unlink(
-        path.join("uploads/profile", oldProfile.profilePicture),
-        () => { }
-      );
+    // 👤 fullName is REQUIRED in schema → only set on CREATE
+    if (!oldProfile && !data.fullName) {
+      data.fullName = user?.name || "User";
     }
 
+    // 🧹 Remove undefined fields (VERY IMPORTANT)
+    Object.keys(data).forEach((key) => {
+      if (data[key] === undefined) {
+        delete data[key];
+      }
+    });
 
+    // 💾 UPSERT
     const profile = await ProfileService.upsertByUserId(
       prisma,
       userId,
       data
     );
 
-    res.json({
+    // 🗑️ Delete old file AFTER successful DB save
+    if (oldProfile?.filePath && req.file) {
+      const oldFileAbsolutePath = path.resolve(oldProfile.filePath);
+      fs.unlink(oldFileAbsolutePath, () => {});
+    }
+
+    return res.json({
       success: true,
       message: "User profile saved successfully",
       data: profile,
     });
   } catch (error) {
     console.error("upsertUserProfile error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to save user profile",
     });
   }
 };
 
+export default upsertUserProfile;
 
 
 const getProfileMe = async (req, res) => {
