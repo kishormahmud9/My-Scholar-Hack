@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import expressSession from "express-session";
+import path from "path";
 import errorHandler from "./app/middleware/errorHandler.js";
 import prisma from "./app/prisma/client.js";
 import { router } from "./app/router/index.js";
@@ -31,6 +32,7 @@ app.set("prisma", prisma);
 app.use(cors());
 app.use(cookieParser());
 app.use(express.json());
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Attach prisma to request
 app.use((req, res, next) => {
