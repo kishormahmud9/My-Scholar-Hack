@@ -3,9 +3,11 @@ import { StatusCodes } from "http-status-codes";
 import { PLAN_LIMITS, PLAN_NAMES } from "./subscriptionStudent.constant.js";
 
 export const SubscriptionStudentService = {
-  getMySubscription: async (prisma, userId) => {
-    // 0️⃣ Auto-expire plans
+  maintainSubscriptions: async (prisma, userId) => {
     const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // 1️⃣ Auto-expire plans
     await prisma.subscriptionStudent.updateMany({
       where: {
         userId,
@@ -15,21 +17,40 @@ export const SubscriptionStudentService = {
       data: { subscriptionStatus: "END" },
     });
 
-    // 0.1️⃣ Auto-reactivate LIMIT_CROSSED plans if we are under the limit
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const count = await prisma.essay.count({
+    // 2️⃣ Promote oldest INACTIVE plan if no ACTIVE plan exists
+    const activePlan = await prisma.subscriptionStudent.findFirst({
       where: {
         userId,
-        isDeleted: false,
-        createdAt: { gte: startOfMonth },
+        subscriptionStatus: "ACTIVE",
+        endDate: { gt: now },
       },
     });
 
-    // Get ALL current potential plans (ACTIVE and LIMIT_CROSSED)
-    const allPlans = await prisma.subscriptionStudent.findMany({
+    if (!activePlan) {
+      const nextPlan = await prisma.subscriptionStudent.findFirst({
+        where: {
+          userId,
+          subscriptionStatus: "INACTIVE",
+          endDate: { gt: now },
+        },
+        orderBy: { purchaseDate: "asc" },
+      });
+
+      if (nextPlan) {
+        await prisma.subscriptionStudent.update({
+          where: { id: nextPlan.id },
+          data: { subscriptionStatus: "ACTIVE", purchaseDate: now },
+        });
+        // Recursively call to check limits for the newly activated plan
+        return SubscriptionStudentService.maintainSubscriptions(prisma, userId);
+      }
+    }
+
+    // 3️⃣ Check current ACTIVE plan for limit crossing
+    const currentActive = await prisma.subscriptionStudent.findFirst({
       where: {
         userId,
-        subscriptionStatus: { in: ["ACTIVE", "LIMIT_CROSSED"] },
+        subscriptionStatus: "ACTIVE",
         endDate: { gt: now },
       },
       include: {
@@ -37,44 +58,49 @@ export const SubscriptionStudentService = {
       },
     });
 
-    if (allPlans.length > 0) {
-      let totalMax = 0;
-      let crossedIds = [];
-      let isPro = false;
-
-      for (const p of allPlans) {
-        const planName = p.subscription.plan.name;
-        let limitInfo = PLAN_LIMITS[planName];
-        if (!limitInfo) {
-          if (planName.toLowerCase().includes("pro"))
-            limitInfo = PLAN_LIMITS[PLAN_NAMES.ESSAY_HACK_PRO];
-          else if (
-            planName.toLowerCase().includes("+") ||
-            planName.toLowerCase().includes("plus")
-          )
-            limitInfo = PLAN_LIMITS[PLAN_NAMES.ESSAY_HACK_PLUS];
-          else if (planName.toLowerCase().includes("hack"))
-            limitInfo = PLAN_LIMITS[PLAN_NAMES.ESSAY_HACK];
-          else limitInfo = PLAN_LIMITS[PLAN_NAMES.FREE];
-        }
-
-        if (limitInfo.maxEssays === Infinity) isPro = true;
-        else totalMax += limitInfo.maxEssays || 0;
-
-        if (p.subscriptionStatus === "LIMIT_CROSSED") {
-          crossedIds.push(p.id);
-        }
+    if (currentActive) {
+      const planName = currentActive.subscription.plan.name;
+      let limitInfo = PLAN_LIMITS[planName];
+      if (!limitInfo) {
+        if (planName.toLowerCase().includes("pro"))
+          limitInfo = PLAN_LIMITS[PLAN_NAMES.ESSAY_HACK_PRO];
+        else if (
+          planName.toLowerCase().includes("+") ||
+          planName.toLowerCase().includes("plus")
+        )
+          limitInfo = PLAN_LIMITS[PLAN_NAMES.ESSAY_HACK_PLUS];
+        else if (planName.toLowerCase().includes("hack"))
+          limitInfo = PLAN_LIMITS[PLAN_NAMES.ESSAY_HACK];
+        else limitInfo = PLAN_LIMITS[PLAN_NAMES.FREE];
       }
 
-      if (isPro || count < totalMax) {
-        if (crossedIds.length > 0) {
-          await prisma.subscriptionStudent.updateMany({
-            where: { id: { in: crossedIds } },
-            data: { subscriptionStatus: "ACTIVE" },
+      if (limitInfo.maxEssays !== Infinity) {
+        const threshold = limitInfo.isMonthly
+          ? new Date(Math.max(currentActive.purchaseDate.getTime(), startOfMonth.getTime()))
+          : currentActive.purchaseDate;
+
+        const pCount = await prisma.essay.count({
+          where: {
+            userId,
+            isDeleted: false,
+            createdAt: { gte: threshold },
+          },
+        });
+
+        if (pCount >= limitInfo.maxEssays) {
+          await prisma.subscriptionStudent.update({
+            where: { id: currentActive.id },
+            data: { subscriptionStatus: "LIMIT_CROSSED" },
           });
+          // After crossing, promote next available
+          return SubscriptionStudentService.maintainSubscriptions(prisma, userId);
         }
       }
     }
+  },
+
+  getMySubscription: async (prisma, userId) => {
+    await SubscriptionStudentService.maintainSubscriptions(prisma, userId);
 
     return prisma.subscriptionStudent.findMany({
       where: { userId },
@@ -107,43 +133,34 @@ export const SubscriptionStudentService = {
       endDate.setMonth(endDate.getMonth() + 1);
     }
 
-    // 1️⃣ Ensure Subscription exists for this user and plan
-    let subscription = await prisma.subscription.findFirst({
+    // 1.1️⃣ Determine initial status (only one ACTIVE/LIMIT_CROSSED at a time)
+    const existingActive = await prisma.subscriptionStudent.findFirst({
       where: {
         userId,
-        status: { in: ["active", "trial"] },
+        subscriptionStatus: { in: ["ACTIVE", "LIMIT_CROSSED"] },
+        endDate: { gt: now },
       },
-      orderBy: { createdAt: "desc" },
     });
 
-    if (subscription) {
-      // Update existing subscription
-      subscription = await prisma.subscription.update({
-        where: { id: subscription.id },
-        data: {
-          planId,
-          status: "active",
-          expiresAt: endDate,
-        },
-      });
-    } else {
-      // Create new subscription
-      subscription = await prisma.subscription.create({
-        data: {
-          userId,
-          planId,
-          status: "active",
-          expiresAt: endDate,
-        },
-      });
-    }
+    const status = existingActive ? "INACTIVE" : "ACTIVE";
 
-    // 2️⃣ Create new SubscriptionStudent record (Multiple allowed)
+    // 1️⃣ Always create a new Subscription record for every purchase
+    const subscription = await prisma.subscription.create({
+      data: {
+        userId,
+        planId,
+        status: "active",
+        expiresAt: endDate,
+      },
+    });
+
+    // 2️⃣ Create new SubscriptionStudent record
     return prisma.subscriptionStudent.create({
       data: {
         userId,
         subscriptionId: subscription.id,
-        subscriptionStatus: "ACTIVE",
+        subscriptionStatus: status,
+        purchaseDate: now,
         endDate,
       },
     });
@@ -193,117 +210,57 @@ export const SubscriptionStudentService = {
   },
 
   validateEssayLimit: async (prisma, userId) => {
+    // 1️⃣ Run maintenance logic to promote/expire plans
+    await SubscriptionStudentService.maintainSubscriptions(prisma, userId);
+
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    // 0️⃣ Auto-expire plans (Time based)
-    await prisma.subscriptionStudent.updateMany({
+    // 2️⃣ Check for currently ACTIVE plan
+    const activePlan = await prisma.subscriptionStudent.findFirst({
       where: {
         userId,
-        subscriptionStatus: { in: ["ACTIVE", "TRAIL", "LIMIT_CROSSED"] },
-        endDate: { lte: now },
-      },
-      data: { subscriptionStatus: "END" },
-    });
-
-    // 1. Get all plans that are either ACTIVE or LIMIT_CROSSED
-    let subStudents = await prisma.subscriptionStudent.findMany({
-      where: {
-        userId,
-        subscriptionStatus: { in: ["ACTIVE", "LIMIT_CROSSED"] },
+        subscriptionStatus: "ACTIVE",
         endDate: { gt: now },
       },
       include: {
-        subscription: {
-          include: { plan: true },
-        },
+        subscription: { include: { plan: true } },
       },
     });
 
-    // If no plans, check Free Trial
-    if (subStudents.length === 0) {
-      const freeLimit = PLAN_LIMITS[PLAN_NAMES.FREE];
-      const count = await prisma.essay.count({
-        where: { userId, isDeleted: false },
-      });
-      if (count >= freeLimit.maxEssays) {
-        throw new DevBuildError(
-          `You have reached the limit of ${freeLimit.maxEssays} essays for your Free plan.`,
-          StatusCodes.FORBIDDEN
-        );
-      }
+    if (activePlan) {
+      // If active exists, it MUST have balance (otherwise maintainSubscriptions would have crossed it)
       return true;
     }
 
-    // 2. Calculate current usage this month
-    const count = await prisma.essay.count({
+    // 3️⃣ If no active plan, check for Any plans (if they have plans but all are LIMIT_CROSSED and no INACTIVE)
+    const anyPlans = await prisma.subscriptionStudent.findMany({
       where: {
         userId,
-        isDeleted: false,
-        createdAt: { gte: startOfMonth },
+        subscriptionStatus: { in: ["ACTIVE", "LIMIT_CROSSED", "INACTIVE"] },
+        endDate: { gt: now },
       },
     });
 
-    // 3. Sum up limits and check if we need to re-activate LIMIT_CROSSED plans
-    let totalMax = 0;
-    let isPro = false;
-    let activeIds = [];
-    let crossedIds = [];
-
-    for (const subStud of subStudents) {
-      const planName = subStud.subscription.plan.name;
-      let limitInfo = PLAN_LIMITS[planName];
-
-      // Fallback
-      if (!limitInfo) {
-        if (planName.toLowerCase().includes("pro")) limitInfo = PLAN_LIMITS[PLAN_NAMES.ESSAY_HACK_PRO];
-        else if (planName.toLowerCase().includes("+") || planName.toLowerCase().includes("plus")) limitInfo = PLAN_LIMITS[PLAN_NAMES.ESSAY_HACK_PLUS];
-        else if (planName.toLowerCase().includes("hack")) limitInfo = PLAN_LIMITS[PLAN_NAMES.ESSAY_HACK];
-        else limitInfo = PLAN_LIMITS[PLAN_NAMES.FREE];
-      }
-
-      if (limitInfo.maxEssays === Infinity) {
-        isPro = true;
-      } else {
-        totalMax += limitInfo.maxEssays;
-      }
-
-      if (subStud.subscriptionStatus === "ACTIVE") activeIds.push(subStud.id);
-      else crossedIds.push(subStud.id);
-    }
-
-    if (isPro) {
-      // If we have a Pro plan, all LIMIT_CROSSED should be ACTIVE again
-      if (crossedIds.length > 0) {
-        await prisma.subscriptionStudent.updateMany({
-          where: { id: { in: crossedIds } },
-          data: { subscriptionStatus: "ACTIVE" },
-        });
-      }
-      return true;
-    }
-
-    // 4. Status Transition Logic
-    if (count >= totalMax) {
-      // Mark ACTIVE plans as LIMIT_CROSSED
-      if (activeIds.length > 0) {
-        await prisma.subscriptionStudent.updateMany({
-          where: { id: { in: activeIds } },
-          data: { subscriptionStatus: "LIMIT_CROSSED" },
-        });
-      }
+    if (anyPlans.length > 0) {
+      // User has plans but they are all either crossed or inactive (queue is stuck?)
+      // Actually if they have INACTIVE plans, the maintainSubscriptions should have promoted them if no ACTIVE existed.
+      // So if we reach here and there are plans, they must all be LIMIT_CROSSED.
       throw new DevBuildError(
-        `You have reached the combined limit of ${totalMax} essays for your active plans this month.`,
+        "You have reached the essay limit for your plans. Please purchase a new plan to continue.",
         StatusCodes.FORBIDDEN
       );
-    } else {
-      // If we are UNDER the limit, any LIMIT_CROSSED plans should be ACTIVE again (new month reset)
-      if (crossedIds.length > 0) {
-        await prisma.subscriptionStudent.updateMany({
-          where: { id: { in: crossedIds } },
-          data: { subscriptionStatus: "ACTIVE" },
-        });
-      }
+    }
+
+    // 4️⃣ Free Trial Check (Only for users with no plans ever)
+    const freeLimit = PLAN_LIMITS[PLAN_NAMES.FREE];
+    const count = await prisma.essay.count({
+      where: { userId, isDeleted: false },
+    });
+    if (count >= freeLimit.maxEssays) {
+      throw new DevBuildError(
+        `You have reached the limit of ${freeLimit.maxEssays} essays for your Free plan.`,
+        StatusCodes.FORBIDDEN
+      );
     }
 
     return true;
