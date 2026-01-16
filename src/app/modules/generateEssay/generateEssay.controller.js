@@ -3,6 +3,7 @@ import { EssayService } from "./generateEssay.service.js";
 import { normalizeEssayText } from "../../utils/normalizeEssayText.js";
 import { toHtml } from "../../utils/toHtml.js";
 import { ESSAY_STATUS } from "./generateEssay.service.js";
+import { SubscriptionStudentService } from "../subscriptionStudent/subscriptionStudent.service.js";
 
 
 // GET all essays
@@ -62,26 +63,41 @@ const createEssay = async (req, res, next) => {
     const scholarshipId = req.user.scholarshipId;
     const { subject, title, prompt } = req.body;
 
-    if (!prompt) {
+    const voice = req.files?.voice?.[0]?.path?.replace(/\\/g, "/");
+    const documents = req.files?.documents?.map((file) => file.path.replace(/\\/g, "/")) || [];
+
+    if (!prompt && !voice && !documents.length) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
-        message: "Prompt is required",
+        message: "At least one of prompt, voice, or document is required",
       });
     }
+
+    // 0️⃣ Validate subscription limits
+    await SubscriptionStudentService.validateEssayLimit(prisma, userId);
 
     // 1️⃣ Save prompt
     const essay = await EssayService.createPrompt(prisma, {
       userId,
       subject,
       title,
-      prompt,
+      prompt: prompt || "Multi-modal essay generation",
+      voiceUrl: voice,
+      documentUrls: documents,
+      voiceFilePath: voice,
+      documentFilePath: documents,
       userProfileId: profileId,
       scholarshipId,
     });
 
     try {
       // 2️⃣ Call AI
-      const aiResponse = await EssayService.generateEssayByAI(title, prompt);
+      const aiResponse = await EssayService.generateEssayByAI(
+        title,
+        prompt || "Please generate an essay based on the attached files.",
+        voice,
+        documents
+      );
 
       if (!aiResponse?.essay) {
         throw new Error("AI returned empty essay");

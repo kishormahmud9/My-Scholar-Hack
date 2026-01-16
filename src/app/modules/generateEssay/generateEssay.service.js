@@ -78,6 +78,10 @@ export const EssayService = {
       data: {
         ...data,
         status: ESSAY_STATUS.GENERATING,
+        voiceUrl: data.voiceUrl || null,
+        documentUrls: data.documentUrls || [],
+        voiceFilePath: data.voiceFilePath || null,
+        documentFilePath: data.documentFilePath || [],
         isDeleted: false,
       },
     });
@@ -155,10 +159,12 @@ export const EssayService = {
   },
 
   // AI CALL
-  generateEssayByAI: async (title, prompt) => {
+  generateEssayByAI: async (title, prompt, voiceUrl = null, documentUrls = []) => {
     const response = await axios.post(envVars.AI_SERVICE_URL, {
       title,
       prompt,
+      voiceUrl,
+      documentUrls,
     });
 
     return response.data;
