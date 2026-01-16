@@ -2,11 +2,12 @@ import prisma from "../../prisma/client.js";
 import { addDays } from "date-fns";
 import DevBuildError from "../../lib/DevBuildError.js";
 import { StatusCodes } from "http-status-codes";
+import { PLAN_NAMES } from "../subscriptionStudent/subscriptionStudent.constant.js";
 
 const PRODUCT_PLAN_MAP = {
-  "HackScholarAgent: Essay Hack": "essay_hack",
-  "ScholarHackAgent: Essay Hack+": "essay_hack_plus",
-  "HackScholarAgent: Essay Hack Pro": "essay_hack_pro",
+  "HackScholarAgent:essay_hack": PLAN_NAMES.ESSAY_HACK,
+  "ScholarHackAgent: essay_hack_plus": PLAN_NAMES.ESSAY_HACK_PLUS,
+  "HackScholarAgent: essay_hack_pro": PLAN_NAMES.ESSAY_HACK_PRO,
 };
 
 const TRIAL_DAYS = 7;
@@ -80,7 +81,7 @@ const processSamcartEvent = async (payload) => {
     let status = "active";
     let expiresAt = null;
 
-    if (planKey === "essay_hack") {
+    if (planKey === PLAN_NAMES.ESSAY_HACK) {
       status = "trial";
       expiresAt = addDays(now, TRIAL_DAYS);
     }
