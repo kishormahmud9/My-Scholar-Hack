@@ -21,7 +21,7 @@ const credentialLogin = async (req, res, next) => {
           return next(
             new DevBuildError(
               info?.message || "Authentication failed",
-              StatusCodes.UNAUTHORIZED
+              StatusCodes.FORBIDDEN
             )
           );
         }

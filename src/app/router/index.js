@@ -4,15 +4,6 @@ import { ProfileRoutes } from "../modules/profiles/profile/profile.route.js";
 import { AuthRouter } from "../modules/auth/auth.route.js";
 import { OtpRouter } from "../modules/otp/otp.route.js";
 import { AcademicInterestRoutes } from "../modules/profiles/academicInterest/academicInterest.route.js";
-import { StudentIdentityRoutes } from "../modules/studentIdentity/studentIdentity.route.js";
-import { EssayRoutes } from "../modules/essay/essay.route.js";
-import { StudentActivityRoutes } from "../modules/studentActivity/studentActivity.route.js";
-import { StudentWorkRoutes } from "../modules/studentWork/studentWork.route.js";
-import { StudentVolunteerRoutes } from "../modules/studentVolunteer/studentVolunteer.route.js";
-import { StudentAwardRoutes } from "../modules/studentAward/studentAward.route.js";
-import { StudentChallengeRoutes } from "../modules/studentChallenge/studentChallenge.route.js";
-import { ScholarshipInterestRoutes } from "../modules/scholarshipInterest/scholarshipInterest.route.js";
-import { WritingPreferenceRoutes } from "../modules/writingPreference/writingPreference.route.js";
 
 import { ExtracurricularActivityRoutes } from "../modules/profiles/extraCurricularActivities/extraCurricularActivities.route.js";
 import { BasicInformationRoutes } from "../modules/profiles/basicInformation/basicInformation.route.js";
@@ -117,43 +108,7 @@ const moduleRoutes = [
   },
 
   // --------------
-  {
-    path: "/student-identity",
-    route: StudentIdentityRoutes,
-  },
-  {
-    path: "/essay",
-    route: EssayRoutes,
-  },
-  {
-    path: "/activity",
-    route: StudentActivityRoutes,
-  },
-  {
-    path: "/work",
-    route: StudentWorkRoutes,
-  },
-  {
-    path: "/volunteer",
-    route: StudentVolunteerRoutes,
-  },
-  {
-    path: "/award",
-    route: StudentAwardRoutes,
-  },
-  {
-    path: "/challenge",
-    route: StudentChallengeRoutes,
-  },
-  {
-    path: "/scholarship-interest",
-    route: ScholarshipInterestRoutes,
-  },
-
-  {
-    path: "/writing-preference",
-    route: WritingPreferenceRoutes,
-  },
+  
 
   {
     path: "/admin",
