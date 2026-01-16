@@ -67,7 +67,7 @@ const purchaseSubscription = async (req, res, next) => {
   try {
     const prisma = req.app.get("prisma");
     const userId = req.user.id;
-    const { planId } = req.body;
+    const { planId, durationType } = req.body;
 
     if (!planId) {
       throw new DevBuildError(
@@ -80,7 +80,8 @@ const purchaseSubscription = async (req, res, next) => {
       await SubscriptionStudentService.purchaseSubscription(
         prisma,
         userId,
-        planId
+        planId,
+        durationType
       );
 
     sendResponse(res, {

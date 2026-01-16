@@ -15,7 +15,7 @@ export const SubscriptionStudentService = {
       data: { subscriptionStatus: "END" },
     });
 
-    // 0.1️⃣ Auto-reactivate LIMIT_CROSSED plans if it's a new month
+    // 0.1️⃣ Auto-reactivate LIMIT_CROSSED plans if we are under the limit
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const count = await prisma.essay.count({
       where: {
@@ -25,11 +25,11 @@ export const SubscriptionStudentService = {
       },
     });
 
-    // Check if we can reactivate
-    const crossedPlans = await prisma.subscriptionStudent.findMany({
+    // Get ALL current potential plans (ACTIVE and LIMIT_CROSSED)
+    const allPlans = await prisma.subscriptionStudent.findMany({
       where: {
         userId,
-        subscriptionStatus: "LIMIT_CROSSED",
+        subscriptionStatus: { in: ["ACTIVE", "LIMIT_CROSSED"] },
         endDate: { gt: now },
       },
       include: {
@@ -37,25 +37,42 @@ export const SubscriptionStudentService = {
       },
     });
 
-    if (crossedPlans.length > 0) {
+    if (allPlans.length > 0) {
       let totalMax = 0;
-      for (const p of crossedPlans) {
+      let crossedIds = [];
+      let isPro = false;
+
+      for (const p of allPlans) {
         const planName = p.subscription.plan.name;
         let limitInfo = PLAN_LIMITS[planName];
         if (!limitInfo) {
-          if (planName.toLowerCase().includes("pro")) limitInfo = PLAN_LIMITS[PLAN_NAMES.ESSAY_HACK_PRO];
-          else if (planName.toLowerCase().includes("+") || planName.toLowerCase().includes("plus")) limitInfo = PLAN_LIMITS[PLAN_NAMES.ESSAY_HACK_PLUS];
-          else if (planName.toLowerCase().includes("hack")) limitInfo = PLAN_LIMITS[PLAN_NAMES.ESSAY_HACK];
+          if (planName.toLowerCase().includes("pro"))
+            limitInfo = PLAN_LIMITS[PLAN_NAMES.ESSAY_HACK_PRO];
+          else if (
+            planName.toLowerCase().includes("+") ||
+            planName.toLowerCase().includes("plus")
+          )
+            limitInfo = PLAN_LIMITS[PLAN_NAMES.ESSAY_HACK_PLUS];
+          else if (planName.toLowerCase().includes("hack"))
+            limitInfo = PLAN_LIMITS[PLAN_NAMES.ESSAY_HACK];
           else limitInfo = PLAN_LIMITS[PLAN_NAMES.FREE];
         }
-        totalMax += limitInfo.maxEssays || 0;
+
+        if (limitInfo.maxEssays === Infinity) isPro = true;
+        else totalMax += limitInfo.maxEssays || 0;
+
+        if (p.subscriptionStatus === "LIMIT_CROSSED") {
+          crossedIds.push(p.id);
+        }
       }
 
-      if (count < totalMax) {
-        await prisma.subscriptionStudent.updateMany({
-          where: { id: { in: crossedPlans.map(p => p.id) } },
-          data: { subscriptionStatus: "ACTIVE" },
-        });
+      if (isPro || count < totalMax) {
+        if (crossedIds.length > 0) {
+          await prisma.subscriptionStudent.updateMany({
+            where: { id: { in: crossedIds } },
+            data: { subscriptionStatus: "ACTIVE" },
+          });
+        }
       }
     }
 
@@ -80,10 +97,15 @@ export const SubscriptionStudentService = {
     });
   },
 
-  purchaseSubscription: async (prisma, userId, planId) => {
+  purchaseSubscription: async (prisma, userId, planId, durationType = "MONTHLY") => {
     const now = new Date();
     const endDate = new Date(now);
-    endDate.setMonth(endDate.getMonth() + 1); // 1 month plan
+
+    if (durationType === "YEARLY") {
+      endDate.setFullYear(endDate.getFullYear() + 1);
+    } else {
+      endDate.setMonth(endDate.getMonth() + 1);
+    }
 
     // 1️⃣ Ensure Subscription exists for this user and plan
     let subscription = await prisma.subscription.findFirst({

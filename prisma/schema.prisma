@@ -134,18 +134,7 @@ model UserProfile {
   gpa            Float?
   financialNeed  Boolean @default(false)
 
-  educations Education[]
-  activities StudentActivity[]
-
-  // 🔧 CHANGED HERE
-  work      StudentWork[]
-  volunteer StudentVolunteer[]
-
-  awards       StudentAward[]
-  challenges   StudentChallenge[]
-  scholarships StudentScholarshipInterest?
-  progress     ProfileProgress?
-
+ education Education?
   essays                   Essay[]
   academicInterest         AcademicInterest?
   basicInformation         BasicInformation?
@@ -160,9 +149,6 @@ model UserProfile {
   essayComparisons         EssayComparison[]
   createdAt                DateTime                 @default(now())
   updatedAt                DateTime                 @updatedAt
-  studentIdentity          StudentIdentity?
-
-  writingPreference WritingPreference?
 }
 
 model BasicInformation {
@@ -195,6 +181,19 @@ model ExtracurricularActivity {
   updatedAt DateTime @updatedAt
 
   @@index([userProfileId])
+}
+
+model AcademicInterest {
+  id            String      @id @default(uuid())
+  userProfileId String      @unique
+  profile       UserProfile @relation(fields: [userProfileId], references: [id])
+
+  intendedMajor String
+  whyThisField  String // long narrative
+  careerGoals   String // 5–10 year vision
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model VolunteerWork {
@@ -456,84 +455,12 @@ model SubscriptionStudent {
 }
 
 // ---------------
-model StudentActivity {
-  id            String      @id @default(uuid())
-  userProfileId String
-  profile       UserProfile @relation(fields: [userProfileId], references: [id])
 
-  activityName String
-  role         String?
-  impact       String?
 
-  createdAt DateTime @default(now())
-}
 
-model StudentWork {
-  id            String      @id @default(uuid())
-  userProfileId String
-  profile       UserProfile @relation(fields: [userProfileId], references: [id])
 
-  jobTitle  String
-  employer  String
-  isCurrent Boolean @default(false)
 
-  createdAt DateTime @default(now())
-}
 
-model StudentVolunteer {
-  id            String      @id @default(uuid())
-  userProfileId String
-  profile       UserProfile @relation(fields: [userProfileId], references: [id])
-
-  organization String
-  timeline     String?
-
-  createdAt DateTime @default(now())
-}
-
-model StudentAward {
-  id            String      @id @default(uuid())
-  userProfileId String
-  profile       UserProfile @relation(fields: [userProfileId], references: [id])
-
-  awardName String
-  reason    String?
-
-  createdAt DateTime @default(now())
-}
-
-model StudentChallenge {
-  id            String      @id @default(uuid())
-  userProfileId String
-  profile       UserProfile @relation(fields: [userProfileId], references: [id])
-
-  challengeType String
-  description   String?
-
-  createdAt DateTime @default(now())
-}
-
-model StudentScholarshipInterest {
-  id            String      @id @default(uuid())
-  userProfileId String      @unique
-  profile       UserProfile @relation(fields: [userProfileId], references: [id])
-
-  interestTypes    Json
-  deadlineTimeline ScholarshipDeadlineTimeline?
-
-  createdAt DateTime @default(now())
-}
-
-model ProfileProgress {
-  id            String      @id @default(uuid())
-  userProfileId String      @unique
-  profile       UserProfile @relation(fields: [userProfileId], references: [id])
-
-  progressPercent   Int
-  completedSections Json?
-
-  updatedAt DateTime @updatedAt
-}
 
 model Plan {
   id String @id @default(uuid())
@@ -587,45 +514,11 @@ model Notification {
   createdAt DateTime @default(now())
 }
 
-model AcademicInterest {
-  id            String      @id @default(uuid())
-  userProfileId String      @unique
-  profile       UserProfile @relation(fields: [userProfileId], references: [id])
 
-  intendedMajor String
-  whyThisField  String // long narrative
-  careerGoals   String // 5–10 year vision
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
 
-model StudentIdentity {
-  id            String      @id @default(uuid())
-  userProfileId String      @unique
-  profile       UserProfile @relation(fields: [userProfileId], references: [id])
 
-  raceEthnicity        Json?
-  genderIdentity       String?
-  otherIdentityFactors Json? // LGBTQ+, disability, ESL, DACA
-  religionOrCulture    String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model WritingPreference {
-  id            String      @id @default(uuid())
-  userProfileId String      @unique
-  profile       UserProfile @relation(fields: [userProfileId], references: [id])
-
-  writingConfidenceLevel Int? // 1–5
-  writingChallenges      Json? // writer's block, grammar, structure
-  aiHelpPreferences      Json? // brainstorm, outline, edit, examples
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
 
 model Offer {
   id String @id @default(uuid())
