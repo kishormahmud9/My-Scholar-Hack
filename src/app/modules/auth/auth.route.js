@@ -10,9 +10,10 @@ router.post("/login", AuthController.credentialLogin);
 router.post("/refresh-token", AuthController.getNewAccessToken);
 router.post("/logout", AuthController.logout);
 router.post("/forgot-password", AuthController.forgotPassword);
+router.post("/verify-forgot-password-otp", AuthController.verifyForgotPasswordOtp);
 router.post(
   "/reset-password",
-    checkAuthMiddleware(...Object.values(Role)),
+  checkAuthMiddleware(...Object.values(Role)),
   AuthController.resetPassword
 );
 // Google login

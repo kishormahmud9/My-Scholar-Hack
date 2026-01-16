@@ -1,5 +1,6 @@
 import DevBuildError from "../../lib/DevBuildError.js";
 import { AuthService, forgotPasswordService } from "./auth.service.js";
+import { OtpService } from "../otp/otp.service.js";
 import jwt from "jsonwebtoken";
 import { envVars } from "../../config/env.js";
 import { createUserTokens } from "../../utils/userTokenGenerator.js";
@@ -156,8 +157,35 @@ const forgotPassword = async (req, res, next) => {
     sendResponse(res, {
       success: true,
       statusCode: StatusCodes.OK,
-      message: "Password reset email sent successfully",
+      message: "Forgot password OTP sent successfully",
       data: null,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const verifyForgotPasswordOtp = async (req, res, next) => {
+  try {
+    const prisma = req.app.get("prisma");
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return sendResponse(res, {
+        success: false,
+        statusCode: StatusCodes.BAD_REQUEST,
+        message: "Email and OTP are required",
+        data: null,
+      });
+    }
+
+    const resetToken = await OtpService.verifyForgotPasswordOtp(prisma, email, otp);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "OTP verified successfully",
+      data: { resetToken },
     });
   } catch (error) {
     next(error);
@@ -166,26 +194,21 @@ const forgotPassword = async (req, res, next) => {
 
 const resetPassword = async (req, res, next) => {
   try {
-    const decodedToken = req.user;
+    const { id } = req.user;
     const { newPassword } = req.body;
-    const id = req.body.id || req.query.id;
 
-    if (!newPassword || !id) {
-      const missing = [];
-      if (!newPassword) missing.push("newPassword (in body)");
-      if (!id) missing.push("id (in body or query)");
-
+    if (!newPassword) {
       return sendResponse(res, {
         success: false,
         statusCode: StatusCodes.BAD_REQUEST,
-        message: `Missing required fields: ${missing.join(", ")}`,
+        message: "newPassword is required",
         data: null,
       });
     }
 
     const payload = { id, newPassword };
 
-    await AuthService.resetPassword(payload, decodedToken);
+    await AuthService.resetPassword(payload);
 
     sendResponse(res, {
       success: true,
@@ -231,6 +254,7 @@ export const AuthController = {
   getNewAccessToken,
   logout,
   forgotPassword,
+  verifyForgotPasswordOtp,
   resetPassword,
   googleCallback,
 };

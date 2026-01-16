@@ -51,7 +51,7 @@ router.patch(
 // GET all plans (admin)
 router.get(
   "/plans",
-  checkAuthMiddleware(Role.ADMIN, Role.OWNER),
+  checkAuthMiddleware(...Object.values(Role)),
   AdminController.getAllPlans
 );
 
