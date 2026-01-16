@@ -22,6 +22,16 @@ enum SubscriptionStatus {
   past_due
 }
 
+enum StudentSubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  TRAIL
+  EXPIRED
+  CANCELLED
+  END
+  LIMIT_CROSSED
+}
+
 enum FirstGenStatus {
   yes
   no
@@ -77,21 +87,23 @@ model User {
 
   role       UserRole   @default(STUDENT)
   status     UserStatus @default(ACTIVE)
-  isVerified Boolean    @default(false)
-  isDeleted  Boolean    @default(false)
+  isVerified           Boolean    @default(false)
+  isDeleted            Boolean    @default(false)
+  forgotPasswordStatus Boolean    @default(false)
 
   auths AuthProvider[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  profile          UserProfile?
-  subscriptions    Subscription[]
-  applications     Application[]
-  essays           Essay[]
-  recommendations  Recommendation[]
-  essayComparisons EssayComparison[]
-  notifications    Notification[]
+  profile             UserProfile?
+  subscriptions       Subscription[]
+  subscriptionStudent SubscriptionStudent[]
+  applications        Application[]
+  essays              Essay[]
+  recommendations     Recommendation[]
+  essayComparisons    EssayComparison[]
+  notifications       Notification[]
 
   @@index([role])
   @@index([status])
@@ -114,13 +126,13 @@ model UserProfile {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id])
 
-  fullName      String?
+  fullName       String?
   profilePicture String?
-  filePath String?
-  bio           String?
-  state         String?
-  gpa           Float?
-  financialNeed Boolean @default(false)
+  filePath       String?
+  bio            String?
+  state          String?
+  gpa            Float?
+  financialNeed  Boolean @default(false)
 
   educations Education[]
   activities StudentActivity[]
@@ -322,6 +334,10 @@ model Essay {
   status       EssayStatus @default(GENERATING)
   subject      String?
   wordCount    Int?
+  voiceUrl     String?
+  documentUrls String[]
+  voiceFilePath    String?
+  documentFilePath String[]
   isDeleted    Boolean     @default(false)
 
   user           User              @relation(fields: [userId], references: [id])
@@ -400,32 +416,44 @@ model Recommendation {
   scholarship Scholarship @relation(fields: [scholarshipId], references: [id])
 }
 
-
 model Application {
-  id             String            @id @default(cuid())
-  status         ApplicationStatus @default(DRAFT)
+  id     String            @id @default(cuid())
+  status ApplicationStatus @default(DRAFT)
 
   // relations
-  userId         String
-  user           User        @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  essayId        String?
-  essay          Essay?      @relation(fields: [essayId], references: [id])
+  essayId String?
+  essay   Essay?  @relation(fields: [essayId], references: [id])
 
-  scholarshipId  String
-  scholarship    Scholarship @relation(fields: [scholarshipId], references: [id])
+  scholarshipId String
+  scholarship   Scholarship @relation(fields: [scholarshipId], references: [id])
 
   // snapshots (optional but powerful)
-  essayTitle     String?
-  scholarshipTitle String
-  scholarshipAmount Int?
+  essayTitle          String?
+  scholarshipTitle    String
+  scholarshipAmount   Int?
   scholarshipDeadline DateTime?
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
+model SubscriptionStudent {
+  id             String @id @default(uuid())
+  userId         String
+  subscriptionId String
 
+  subscriptionStatus StudentSubscriptionStatus @default(ACTIVE)
+  purchaseDate       DateTime                  @default(now())
+  endDate            DateTime
+
+  user         User         @relation(fields: [userId], references: [id])
+  subscription Subscription @relation(fields: [subscriptionId], references: [id])
+
+  // @@unique([userId]) // Removed to allow multiple plans per user
+}
 
 // ---------------
 model StudentActivity {
@@ -507,7 +535,6 @@ model ProfileProgress {
   updatedAt DateTime @updatedAt
 }
 
-
 model Plan {
   id String @id @default(uuid())
 
@@ -542,10 +569,10 @@ model Subscription {
   user User @relation(fields: [userId], references: [id])
   plan Plan @relation(fields: [planId], references: [id])
 
-  status SubscriptionStatus @default(active)
-
-  expiresAt DateTime?   // 🔥 REQUIRED
-  createdAt DateTime @default(now())
+  status    SubscriptionStatus    @default(active)
+  students  SubscriptionStudent[]
+  expiresAt DateTime? // 🔥 REQUIRED
+  createdAt DateTime              @default(now())
 }
 
 model Notification {

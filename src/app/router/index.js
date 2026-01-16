@@ -30,6 +30,7 @@ import { EssayComparisonRoutes } from "../modules/essayComparison/essayCompariso
 import { RecommendationRoutes } from "../modules/recommendation/recommendation.route.js";
 import { ApplicationRoute } from "../modules/application/application.route.js";
 import { PaymentRoutes } from "../modules/payment/payment.route.js";
+import { SubscriptionStudentRouter } from "../modules/subscriptionStudent/subscriptionStudent.route.js";
 
 export const router = Router();
 
@@ -109,6 +110,10 @@ const moduleRoutes = [
   {
     path: "/application",
     route: ApplicationRoute,
+  },
+  {
+    path: "/subscription-student",
+    route: SubscriptionStudentRouter,
   },
 
   // --------------
