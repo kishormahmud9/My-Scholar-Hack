@@ -3,9 +3,9 @@ import DevBuildError from "../../lib/DevBuildError.js";
 import bcrypt from "bcrypt";
 
 export const UserService = {
- 
+
   // BASIC FIND METHODS
- 
+
   findByEmail: async (prisma, email) =>
     prisma.user.findUnique({ where: { email } }),
 
@@ -15,9 +15,9 @@ export const UserService = {
   findById: async (prisma, id) =>
     prisma.user.findUnique({ where: { id } }),
 
- 
+
   // ✅ ONLY USER INFO (NO PROFILE)
- 
+
   findUserInfoById: async (prisma, id) =>
     prisma.user.findUnique({
       where: { id },
@@ -35,9 +35,9 @@ export const UserService = {
       },
     }),
 
- 
+
   // UPDATE / DELETE
- 
+
   update: async (prisma, id, data) =>
     prisma.user.update({
       where: { id },
@@ -49,29 +49,20 @@ export const UserService = {
       where: { id },
     }),
 
- 
+
   // USER + FULL PROFILE
- 
+
   findByIdWithProfile: async (prisma, id) =>
     prisma.user.findUnique({
       where: { id },
       include: {
         profile: {
           include: {
-            educations: true,
-            activities: true,
-            work: true,
-            volunteer: true,
-            awards: true,
-            challenges: true,
+            education: true,
             essays: true,
             academicInterest: true,
-            scholarships: true,
-            progress: true,
             familyBackground: true,
-            studentIdentity: true,
             essaySpecificQuestions: true,
-            writingPreference: true,
             uniqueExperience: true,
             basicInformation: true,
             extraCurricularsActivity: true,
@@ -79,6 +70,7 @@ export const UserService = {
             diversityIdentity: true,
             scholarshipSpecificInfo: true,
             anythingElse: true,
+            essayComparisons: true,
           },
         },
       },
@@ -89,20 +81,11 @@ export const UserService = {
       include: {
         profile: {
           include: {
-            educations: true,
-            activities: true,
-            work: true,
-            volunteer: true,
-            awards: true,
-            challenges: true,
+            education: true,
             essays: true,
             academicInterest: true,
-            scholarships: true,
-            progress: true,
             familyBackground: true,
-            studentIdentity: true,
             essaySpecificQuestions: true,
-            writingPreference: true,
             uniqueExperience: true,
             basicInformation: true,
             extraCurricularsActivity: true,
@@ -110,6 +93,7 @@ export const UserService = {
             diversityIdentity: true,
             scholarshipSpecificInfo: true,
             anythingElse: true,
+            essayComparisons: true,
           },
         },
       },
