@@ -4,8 +4,6 @@ const handleSamcartWebhook = async (req, res, next) => {
   try {
     const payload = req.body;
 
-    console.log("🔥 SamCart Webhook:", payload);
-
     await paymentService.processSamcartEvent(payload);
 
     res.status(200).json({
