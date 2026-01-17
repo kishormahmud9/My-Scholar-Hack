@@ -2,12 +2,11 @@ import prisma from "../../prisma/client.js";
 import { addDays } from "date-fns";
 import DevBuildError from "../../lib/DevBuildError.js";
 import { StatusCodes } from "http-status-codes";
-import { PLAN_NAMES } from "../subscriptionStudent/subscriptionStudent.constant.js";
 
 const PRODUCT_PLAN_MAP = {
-  "HackScholarAgent:essay_hack": PLAN_NAMES.ESSAY_HACK,
-  "ScholarHackAgent: essay_hack_plus": PLAN_NAMES.ESSAY_HACK_PLUS,
-  "HackScholarAgent: essay_hack_pro": PLAN_NAMES.ESSAY_HACK_PRO,
+  "HackScholarAgent:  Essay Hack": "essay_hack",
+  "ScholarHackAgent: Essay Hack+": "essay_hack_plus",
+  "HackScholarAgent: Essay Hack Pro": "essay_hack_pro",
 };
 
 const TRIAL_DAYS = 7;
@@ -15,22 +14,16 @@ const TRIAL_DAYS = 7;
 const processSamcartEvent = async (payload) => {
   console.log("📦 Processing SamCart Payload:", payload);
 
-  const { type, data } = payload;
+  const { type, product, customer, order } = payload;
 
-  if (!data) {
-    throw new DevBuildError("Invalid payload: missing data", 400);
-  }
-
-  const { product, customer, custom } = data;
-
-  if (!product?.name || !customer?.email || !custom?.userId) {
+  if (!type || !product?.name || !customer?.email || !order?.id) {
     throw new DevBuildError(
-      "Invalid payload: missing product/customer/userId",
+      "Invalid SamCart payload: missing required fields",
       StatusCodes.BAD_REQUEST
     );
   }
 
-  const userId = custom.userId;
+  const email = customer.email.toLowerCase();
   const productName = product.name;
 
   const planKey = PRODUCT_PLAN_MAP[productName];
@@ -42,19 +35,17 @@ const processSamcartEvent = async (payload) => {
     );
   }
 
-  // 1️⃣ Find user
   const user = await prisma.user.findUnique({
-    where: { id: userId },
+    where: { email },
   });
 
   if (!user) {
     throw new DevBuildError(
-      "User not found. Cannot assign subscription.",
+      "User not found for this email",
       StatusCodes.NOT_FOUND
     );
   }
 
-  // 2️⃣ Find plan
   const plan = await prisma.plan.findUnique({
     where: { name: planKey },
   });
@@ -68,7 +59,6 @@ const processSamcartEvent = async (payload) => {
 
   const now = new Date();
 
-  // 3️⃣ Find existing subscription
   const existingSub = await prisma.subscription.findFirst({
     where: {
       userId: user.id,
@@ -76,18 +66,17 @@ const processSamcartEvent = async (payload) => {
     },
   });
 
-  // ✅ Successful payment
-  if (type === "order.completed") {
+  // ✅ Successful Order
+  if (type === "Order") {
     let status = "active";
     let expiresAt = null;
 
-    if (planKey === PLAN_NAMES.ESSAY_HACK) {
+    if (planKey === "essay_hack") {
       status = "trial";
       expiresAt = addDays(now, TRIAL_DAYS);
     }
 
     if (existingSub) {
-      // Same plan → extend
       if (existingSub.planId === plan.id) {
         if (existingSub.expiresAt) {
           expiresAt = addDays(existingSub.expiresAt, TRIAL_DAYS);
@@ -95,25 +84,18 @@ const processSamcartEvent = async (payload) => {
 
         await prisma.subscription.update({
           where: { id: existingSub.id },
-          data: {
-            expiresAt,
-            status,
-          },
+          data: { status, expiresAt },
         });
 
         return;
       }
 
-      // Different plan → cancel old
       await prisma.subscription.update({
         where: { id: existingSub.id },
-        data: {
-          status: "canceled",
-        },
+        data: { status: "canceled" },
       });
     }
 
-    // Create new subscription
     await prisma.subscription.create({
       data: {
         userId: user.id,
@@ -127,28 +109,24 @@ const processSamcartEvent = async (payload) => {
   }
 
   // ❌ Cancellation
-  if (type === "subscription.cancelled") {
+  if (type === "Cancellation") {
     if (!existingSub) return;
 
     await prisma.subscription.update({
       where: { id: existingSub.id },
-      data: {
-        status: "canceled",
-      },
+      data: { status: "canceled" },
     });
 
     return;
   }
 
-  // ❌ Failed payment
-  if (type === "payment.failed") {
+  // ❌ Failed Payment
+  if (type === "Failed payment") {
     if (!existingSub) return;
 
     await prisma.subscription.update({
       where: { id: existingSub.id },
-      data: {
-        status: "past_due",
-      },
+      data: { status: "past_due" },
     });
 
     return;
