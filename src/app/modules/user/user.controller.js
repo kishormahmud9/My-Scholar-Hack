@@ -1,10 +1,8 @@
-
 import { createUserService, UserService } from "./user.service.js";
-
+import { createNotificationForAdmins } from "../notification/notification.service.js";
 import { StatusCodes } from "http-status-codes";
 import { sendResponse } from "../../utils/sendResponse.js";
 import DevBuildError from "../../lib/DevBuildError.js";
-
 
 const registerUser = async (req, res, next) => {
   try {
@@ -17,6 +15,20 @@ const registerUser = async (req, res, next) => {
     };
 
     const result = await createUserService(payload);
+
+    // 🔔 Admin Notification Hook
+    try {
+      await createNotificationForAdmins({
+        title: "New User Registered",
+        message: `${result.email} has registered`,
+        type: "USER_REGISTER",
+      });
+    } catch (notifyError) {
+      console.error(
+        "⚠️ Failed to send admin notification:",
+        notifyError.message,
+      );
+    }
 
     sendResponse(res, {
       success: true,
@@ -48,8 +60,6 @@ const getUserInfo = async (req, res, next) => {
     next(error);
   }
 };
-
-
 
 // User details by ID
 const userDetails = async (req, res, next) => {
@@ -123,4 +133,10 @@ const updateUser = async (req, res) => {
   }
 };
 
-export const UserController = { registerUser, userDetails, getAllUsersWithProfile, updateUser, getUserInfo };
+export const UserController = {
+  registerUser,
+  userDetails,
+  getAllUsersWithProfile,
+  updateUser,
+  getUserInfo,
+};
