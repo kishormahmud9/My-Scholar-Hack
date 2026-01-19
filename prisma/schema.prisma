@@ -85,8 +85,8 @@ model User {
   phoneNumber  String?
   picture      String?
 
-  role       UserRole   @default(STUDENT)
-  status     UserStatus @default(ACTIVE)
+  role                 UserRole   @default(STUDENT)
+  status               UserStatus @default(ACTIVE)
   isVerified           Boolean    @default(false)
   isDeleted            Boolean    @default(false)
   forgotPasswordStatus Boolean    @default(false)
@@ -134,7 +134,7 @@ model UserProfile {
   gpa            Float?
   financialNeed  Boolean @default(false)
 
- education Education?
+  education                Education?
   essays                   Essay[]
   academicInterest         AcademicInterest?
   basicInformation         BasicInformation?
@@ -327,17 +327,17 @@ model Essay {
   userProfileId String?
   scholarshipId String?
 
-  title        String?
-  prompt       String?     @db.Text
-  contentFinal String?     @db.Text
-  status       EssayStatus @default(GENERATING)
-  subject      String?
-  wordCount    Int?
-  voiceUrl     String?
-  documentUrls String[]
+  title            String?
+  prompt           String?     @db.Text
+  contentFinal     String?     @db.Text
+  status           EssayStatus @default(GENERATING)
+  subject          String?
+  wordCount        Int?
+  voiceUrl         String?
+  documentUrls     String[]
   voiceFilePath    String?
   documentFilePath String[]
-  isDeleted    Boolean     @default(false)
+  isDeleted        Boolean     @default(false)
 
   user           User              @relation(fields: [userId], references: [id])
   profile        UserProfile?      @relation(fields: [userProfileId], references: [id])
@@ -456,12 +456,6 @@ model SubscriptionStudent {
 
 // ---------------
 
-
-
-
-
-
-
 model Plan {
   id String @id @default(uuid())
 
@@ -513,12 +507,6 @@ model Notification {
 
   createdAt DateTime @default(now())
 }
-
-
-
-
-
-
 
 model Offer {
   id String @id @default(uuid())
