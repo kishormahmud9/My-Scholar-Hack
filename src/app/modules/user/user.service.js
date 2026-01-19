@@ -139,6 +139,11 @@ export const createUserService = async (payload) => {
           providerId: email,
         },
       },
+      profile: {
+        create: {
+          fullName: rest.name,
+        },
+      },
     },
     include: {
       auths: true,
