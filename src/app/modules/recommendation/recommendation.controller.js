@@ -32,7 +32,9 @@ const generateRecommendations = async (req, res, next) => {
         await RecommendationService.upsertScholarship(prisma, {
           title: item.title,
           type: item.type,
-          amount: item.amount ?? 0,
+          amount: item.amount
+            ? parseInt(String(item.amount).replace(/[^0-9]/g, ""), 10) || 0
+            : 0,
           provider: item.from ?? "AI_RECOMMENDATION",
           deadline: item.deadline ? new Date(item.deadline) : null,
           description: item.description ?? null,
@@ -43,7 +45,7 @@ const generateRecommendations = async (req, res, next) => {
         userId,
         scholarshipId: scholarship.id,
         score: item.score ?? 80,
-        reason: item.reason ?? null,
+        reason: item.reason || "Recommended based on your profile matching criteria.",
       })
     }
 
@@ -58,9 +60,9 @@ const generateRecommendations = async (req, res, next) => {
       data: recommendationData,
     })
   } catch (error) {
-    next(error)
+    next(error);
   }
-}
+};
 
 const getUserRecommendations = async (req, res, next) => {
   try {

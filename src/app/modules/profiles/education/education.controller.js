@@ -3,10 +3,22 @@ import { StatusCodes } from "http-status-codes";
 
 const createEducation = async (req, res, next) => {
   try {
-    const { userProfileId } = req.user;
+    const { id: userId } = req.user;
+    const prisma = req.prisma;
+
+    const profile = await prisma.userProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!profile) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        message: "User profile not found",
+      });
+    }
 
     const education = await EducationService.createEducation(
-      userProfileId,
+      profile.id,
       req.body
     );
 
@@ -21,10 +33,23 @@ const createEducation = async (req, res, next) => {
 
 const getMyEducations = async (req, res, next) => {
   try {
-    const { userProfileId } = req.user;
+    const { id: userId } = req.user;
+    const prisma = req.prisma;
 
-    const educations =
-      await EducationService.getEducationsByProfile(userProfileId);
+    const profile = await prisma.userProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!profile) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        message: "User profile not found",
+      });
+    }
+
+    const educations = await EducationService.getEducationsByProfile(
+      profile.id
+    );
 
     res.status(StatusCodes.OK).json({
       success: true,
@@ -38,9 +63,21 @@ const getMyEducations = async (req, res, next) => {
 const deleteEducation = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { userProfileId } = req.user;
+    const { id: userId } = req.user;
+    const prisma = req.prisma;
 
-    await EducationService.deleteEducation(id, userProfileId);
+    const profile = await prisma.userProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!profile) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        message: "User profile not found",
+      });
+    }
+
+    await EducationService.deleteEducation(id, profile.id);
 
     res.status(StatusCodes.OK).json({
       success: true,

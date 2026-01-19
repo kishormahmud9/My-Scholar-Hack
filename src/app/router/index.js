@@ -23,6 +23,7 @@ import { ApplicationRoute } from "../modules/application/application.route.js";
 import { PaymentRoutes } from "../modules/payment/payment.route.js";
 import { SubscriptionStudentRouter } from "../modules/subscriptionStudent/subscriptionStudent.route.js";
 import { NotificationRoutes } from "../modules/notification/notification.routes.js";
+import { DashboardStatsRoutes } from "../modules/dashboardStats/dashboardStats.route.js";
 
 export const router = Router();
 
@@ -107,8 +108,13 @@ const moduleRoutes = [
     path: "/subscription-student",
     route: SubscriptionStudentRouter,
   },
+  {
+    path: "/dashboard-stats",
+    route: DashboardStatsRoutes,
+  },
 
   // --------------
+
 
   {
     path: "/admin",

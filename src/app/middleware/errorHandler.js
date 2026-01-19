@@ -34,6 +34,14 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
+  // Axios / External API errors
+  if (err.response) {
+    return res.status(err.response.status).json({
+      success: false,
+      message: err.response.data?.error || err.response.data?.message || "External Service Error",
+    });
+  }
+
   // Unknown errors
   return res.status(500).json({
     success: false,
