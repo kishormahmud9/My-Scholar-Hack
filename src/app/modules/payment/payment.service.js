@@ -12,7 +12,7 @@ const PRODUCT_PLAN_MAP = {
 const TRIAL_DAYS = 7;
 
 const processSamcartEvent = async (payload) => {
-  console.log("📦 Processing SamCart Payload:", payload);
+  console.log("Processing SamCart Payload:", payload);
 
   const { type, product, customer, order } = payload;
 
