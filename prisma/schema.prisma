@@ -103,7 +103,7 @@ model User {
   essays              Essay[]
   recommendations     Recommendation[]
   essayComparisons    EssayComparison[]
-  notifications       Notification[]
+  notificationRecipients NotificationRecipient[]
 
   @@index([role])
   @@index([status])
@@ -497,16 +497,30 @@ model Subscription {
 }
 
 model Notification {
-  id     String @id @default(uuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  type      String
+  createdAt DateTime @default(now())
 
-  title   String
-  message String
-  type    String
-  isRead  Boolean @default(false)
+  recipients NotificationRecipient[]
+}
+
+model NotificationRecipient {
+  id             String   @id @default(uuid())
+  notificationId String
+  userId         String
+
+  isRead    Boolean @default(false)
+  isDeleted Boolean @default(false)
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+
+  @@unique([notificationId, userId])
+  @@index([userId])
 }
 
 model Offer {

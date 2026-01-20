@@ -10,10 +10,14 @@ const router = Router();
 
 router.get("/", checkAuthMiddleware("ADMIN", "OWNER"), getMyNotifications);
 
-router.patch("/:id/read", checkAuthMiddleware("ADMIN", "OWNER"), markAsRead);
+router.patch(
+  "/:recipientId/read",
+  checkAuthMiddleware("ADMIN", "OWNER"),
+  markAsRead,
+);
 
 router.delete(
-  "/:id",
+  "/:recipientId",
   checkAuthMiddleware("ADMIN", "OWNER"),
   removeNotification,
 );

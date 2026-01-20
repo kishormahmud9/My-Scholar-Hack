@@ -4,8 +4,7 @@ import {
   deleteNotification,
 } from "./notification.service.js";
 
-//Get all notifications for the logged-in user
-
+// Get all notifications for logged-in user
 export const getMyNotifications = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -26,13 +25,13 @@ export const getMyNotifications = async (req, res) => {
   }
 };
 
-//Mark a notification as read
-
+// Mark a notification as read (per user)
 export const markAsRead = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { recipientId } = req.params;
+    const userId = req.user.id;
 
-    const updated = await markNotificationAsRead(id);
+    const updated = await markNotificationAsRead(recipientId, userId);
 
     return res.status(200).json({
       success: true,
@@ -41,20 +40,20 @@ export const markAsRead = async (req, res) => {
   } catch (error) {
     console.error("❌ markAsRead error:", error);
 
-    return res.status(500).json({
+    return res.status(403).json({
       success: false,
-      message: "Failed to mark notification as read",
+      message: error.message || "Failed to mark notification as read",
     });
   }
 };
 
-//Delete a notification
-
+// Delete a notification (soft delete, per user)
 export const removeNotification = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { recipientId } = req.params;
+    const userId = req.user.id;
 
-    await deleteNotification(id);
+    await deleteNotification(recipientId, userId);
 
     return res.status(200).json({
       success: true,
@@ -63,9 +62,9 @@ export const removeNotification = async (req, res) => {
   } catch (error) {
     console.error("❌ removeNotification error:", error);
 
-    return res.status(500).json({
+    return res.status(403).json({
       success: false,
-      message: "Failed to delete notification",
+      message: error.message || "Failed to delete notification",
     });
   }
 };
