@@ -8,17 +8,33 @@ import { checkAuthMiddleware } from "../../middleware/checkAuthMiddleware.js";
 
 const router = Router();
 
-router.get("/", checkAuthMiddleware("ADMIN", "OWNER"), getMyNotifications);
+// ADMIN + OWNER
+router.get("/admin", checkAuthMiddleware("ADMIN", "OWNER"), getMyNotifications);
 
 router.patch(
-  "/:recipientId/read",
+  "/admin/:recipientId/read",
   checkAuthMiddleware("ADMIN", "OWNER"),
   markAsRead,
 );
 
 router.delete(
-  "/:recipientId",
+  "/admin/:recipientId",
   checkAuthMiddleware("ADMIN", "OWNER"),
+  removeNotification,
+);
+
+// STUDENT
+router.get("/student", checkAuthMiddleware("STUDENT"), getMyNotifications);
+
+router.patch(
+  "/student/:recipientId/read",
+  checkAuthMiddleware("STUDENT"),
+  markAsRead,
+);
+
+router.delete(
+  "/student/:recipientId",
+  checkAuthMiddleware("STUDENT"),
   removeNotification,
 );
 

@@ -3,6 +3,9 @@ import app from "./app.js";
 import { envVars } from "./app/config/env.js";
 import { connectRedis } from "./app/config/redis.config.js";
 import { initSocket } from "./app/socket.js";
+import { startSubscriptionExpiryCron } from "./app/modules/student_notification/subscriptionExpiry.cron.js"; 
+import { startScholarshipDeadlineCron } from "./app/modules/student_notification/scholarshipDeadline.cron.js";
+
 
 const PORT = envVars.PORT || 5001;
 
@@ -15,9 +18,14 @@ const startServer = async () => {
     // Socket attach
     initSocket(server);
 
+    // 🔔 Start student subscription cron
+    startSubscriptionExpiryCron();
+    startScholarshipDeadlineCron();
+
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`🔌 Socket.io attached`);
+      console.log(`⏰ Subscription expiry cron started`);
     });
   } catch (error) {
     console.error("❌ Failed to start server:", error);
