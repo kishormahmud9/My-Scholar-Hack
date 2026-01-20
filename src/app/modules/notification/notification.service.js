@@ -1,64 +1,70 @@
 import prisma from "../../prisma/client.js";
 import { getIO } from "../../socket.js";
 
+// Create ONE master notification + recipients for all admins
 export const createNotificationForAdmins = async ({ title, message, type }) => {
   try {
-    // Fetch all ADMIN and OWNER users
     const admins = await prisma.user.findMany({
       where: {
-        role: {
-          in: ["ADMIN", "OWNER"],
-        },
+        role: { in: ["ADMIN", "OWNER"] },
       },
-      select: {
-        id: true,
-      },
+      select: { id: true },
     });
 
-    if (!admins.length) return [];
+    if (!admins.length) return null;
 
-    // Prepare bulk insert data
-    const notificationsData = admins.map((admin) => ({
-      userId: admin.id,
-      title,
-      message,
-      type,
-    }));
-
-    // Save notifications in DB
-    await prisma.notification.createMany({
-      data: notificationsData,
-    });
-
-    // Emit real-time notification to admin-room
-    try {
-      const io = getIO();
-      io.to("admin-room").emit("new-notification", {
+    const notification = await prisma.notification.create({
+      data: {
         title,
         message,
         type,
-        createdAt: new Date(),
+      },
+    });
+
+    const recipientsData = admins.map((admin) => ({
+      userId: admin.id,
+      notificationId: notification.id,
+    }));
+
+    await prisma.notificationRecipient.createMany({
+      data: recipientsData,
+    });
+
+    // Emit socket event
+    try {
+      const io = getIO();
+      io.to("admin-room").emit("new-notification", {
+        id: notification.id,
+        title,
+        message,
+        type,
+        createdAt: notification.createdAt,
       });
     } catch (socketError) {
       console.error("⚠️ Socket emit failed:", socketError.message);
-      // IMPORTANT: We do NOT throw error here
-      // Server must stay alive
     }
 
-    return notificationsData;
+    return notification;
   } catch (error) {
     console.error("❌ createNotificationForAdmins error:", error);
     throw error;
   }
 };
 
-//Get all notifications for a specific user
-
+// Get notifications for a specific user
 export const getUserNotifications = async (userId) => {
   try {
-    return await prisma.notification.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
+    return await prisma.notificationRecipient.findMany({
+      where: {
+        userId,
+        isDeleted: false,
+      },
+      include: {
+        notification: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
     });
   } catch (error) {
     console.error("❌ getUserNotifications error:", error);
@@ -66,12 +72,23 @@ export const getUserNotifications = async (userId) => {
   }
 };
 
-//Mark a notification as read
-
-export const markNotificationAsRead = async (notificationId) => {
+// Mark as read (ownership enforced)
+export const markNotificationAsRead = async (recipientId, userId) => {
   try {
-    return await prisma.notification.update({
-      where: { id: notificationId },
+    const recipient = await prisma.notificationRecipient.findFirst({
+      where: {
+        id: recipientId,
+        userId,
+        isDeleted: false,
+      },
+    });
+
+    if (!recipient) {
+      throw new Error("Notification not found or access denied");
+    }
+
+    return await prisma.notificationRecipient.update({
+      where: { id: recipientId },
       data: { isRead: true },
     });
   } catch (error) {
@@ -80,12 +97,24 @@ export const markNotificationAsRead = async (notificationId) => {
   }
 };
 
-//Delete a notification
-
-export const deleteNotification = async (notificationId) => {
+// Soft delete (ownership enforced)
+export const deleteNotification = async (recipientId, userId) => {
   try {
-    return await prisma.notification.delete({
-      where: { id: notificationId },
+    const recipient = await prisma.notificationRecipient.findFirst({
+      where: {
+        id: recipientId,
+        userId,
+        isDeleted: false,
+      },
+    });
+
+    if (!recipient) {
+      throw new Error("Notification not found or access denied");
+    }
+
+    return await prisma.notificationRecipient.update({
+      where: { id: recipientId },
+      data: { isDeleted: true },
     });
   } catch (error) {
     console.error("❌ deleteNotification error:", error);
