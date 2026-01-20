@@ -46,10 +46,16 @@ export const initSocket = (httpServer) => {
 
     console.log("🔌 Socket connected:", user.email);
 
+    // 🔒 Admin room (KEEP AS IS)
     if (user.role === "ADMIN" || user.role === "OWNER") {
       socket.join("admin-room");
       console.log(`👑 ${user.email} joined admin-room`);
     }
+
+    // ✅ Student private room
+    const studentRoom = `student:${user.id}`;
+    socket.join(studentRoom);
+    console.log(`🎓 ${user.email} joined ${studentRoom}`);
 
     socket.on("disconnect", () => {
       console.log("❌ Socket disconnected:", user.email);
