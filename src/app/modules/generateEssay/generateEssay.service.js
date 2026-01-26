@@ -160,11 +160,15 @@ export const EssayService = {
 
   // AI CALL
   generateEssayByAI: async (title, prompt, voiceUrl = null, documentUrls = []) => {
+    // Convert local paths to full URLs if they exist
+    const fullVoiceUrl = voiceUrl ? `${envVars.SERVER_URL}/${voiceUrl}` : null;
+    const fullDocumentUrls = documentUrls.map(doc => `${envVars.SERVER_URL}/${doc}`);
+
     const response = await axios.post(envVars.AI_SERVICE_URL, {
       title,
       prompt,
-      voiceUrl,
-      documentUrls,
+      voiceUrl: fullVoiceUrl,
+      documentUrls: fullDocumentUrls,
     });
 
     return response.data;
