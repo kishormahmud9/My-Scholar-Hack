@@ -63,13 +63,30 @@ const createEssay = async (req, res, next) => {
     const scholarshipId = req.user.scholarshipId;
     const { subject, title, prompt } = req.body;
 
+    // DEBUG LOGS
+    console.log("=== CREATE ESSAY REQUEST DEBUG ===");
+    console.log("Headers:", req.headers); // 👈 Added to check Content-Type
+    console.log("Body Keys:", Object.keys(req.body));
+    console.log("File Keys:", req.files ? Object.keys(req.files) : "No Files");
+    if (req.files) {
+      Object.keys(req.files).forEach(key => {
+        console.log(`- Field '${key}' contains ${req.files[key].length} files`);
+      });
+    }
+    console.log("Values:", { hasPrompt: !!prompt, hasSubject: !!subject, hasTitle: !!title });
+    console.log("==================================");
+
     const voice = req.files?.voice?.[0]?.path?.replace(/\\/g, "/");
     const documents = req.files?.documents?.map((file) => file.path.replace(/\\/g, "/")) || [];
 
     if (!prompt && !voice && !documents.length) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
-        message: "At least one of prompt, voice, or document is required",
+        message: "Input missing. You must provide a 'prompt' (text), or a 'voice' (file), or 'documents' (files).",
+        receivedFields: {
+          body: Object.keys(req.body),
+          files: req.files ? Object.keys(req.files) : []
+        }
       });
     }
 
@@ -130,7 +147,14 @@ const createEssay = async (req, res, next) => {
         },
       });
     } catch (aiError) {
-      console.error("AI ERROR:", aiError);
+      console.error("=== AI GENERATION ERROR ===");
+      if (aiError.response) {
+        console.error("Response Data:", aiError.response.data);
+        console.error("Response Status:", aiError.response.status);
+      } else {
+        console.error("Error Message:", aiError.message);
+      }
+      console.error("===========================");
 
       await EssayService.updateEssay(prisma, essay.id, userId, {
         status: ESSAY_STATUS.FAILED,
@@ -139,6 +163,7 @@ const createEssay = async (req, res, next) => {
       res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: "Essay generation failed",
+        error: aiError.response?.data || aiError.message
       });
     }
   } catch (error) {

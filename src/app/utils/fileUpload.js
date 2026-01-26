@@ -20,21 +20,36 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
+    // DEBUG LOG
+    console.log("Multer Filtering file:", {
+        fieldname: file.fieldname,
+        originalname: file.originalname,
+        mimetype: file.mimetype
+    });
+
     const allowedTypes = [
         "audio/mpeg",
         "audio/wav",
         "audio/ogg",
         "audio/mp3",
+        "audio/x-mpeg",
+        "audio/mpeg3",
+        "audio/x-m4a",
+        "audio/mp4",
         "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "image/jpeg",
         "image/png",
         "image/webp",
+        "application/octet-stream",
     ];
 
     if (allowedTypes.includes(file.mimetype)) {
         cb(null, true);
     } else {
-        cb(new Error("Invalid file type. Only audio, PDF, and images are allowed."), false);
+        console.error("REJECTED FILE TYPE:", file.mimetype);
+        cb(new Error(`Invalid file type: ${file.mimetype}. Only audio, PDF, and images are allowed.`), false);
     }
 };
 
