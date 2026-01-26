@@ -24,6 +24,7 @@ import { PaymentRoutes } from "../modules/payment/payment.route.js";
 import { SubscriptionStudentRouter } from "../modules/subscriptionStudent/subscriptionStudent.route.js";
 import { NotificationRoutes } from "../modules/notification/notification.routes.js";
 import { DashboardStatsRoutes } from "../modules/dashboardStats/dashboardStats.route.js";
+import { SettingsRoutes } from "../modules/admin/settings/settings.route.js";
 
 export const router = Router();
 
@@ -115,7 +116,6 @@ const moduleRoutes = [
 
   // --------------
 
-
   {
     path: "/admin",
     route: AdminRoutes,
@@ -129,6 +129,11 @@ const moduleRoutes = [
   {
     path: "/notifications",
     route: NotificationRoutes,
+  },
+
+  {
+    path: "/admin/settings",
+    route: SettingsRoutes,
   },
 ];
 

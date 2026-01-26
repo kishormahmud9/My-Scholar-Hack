@@ -18,10 +18,16 @@ router.patch(
   AdminController.updateUserStatus
 );
 
+router.patch(
+  "/users/:userId",
+  checkAuthMiddleware(Role.ADMIN, Role.OWNER),
+  AdminController.activeUser,
+);
+
 router.delete(
   "/users/:userId",
   checkAuthMiddleware(Role.ADMIN, Role.OWNER),
-  AdminController.deleteUser
+  AdminController.hardDeleteUser,
 );
 
 router.post(

@@ -171,7 +171,7 @@ export const AdminService = {
   // =========================
   // DELETE USER (SOFT DELETE - SAFE)
   // =========================
-  deleteUser: async (prisma, userId) => {
+  activeUser: async (prisma, userId) => {
     // 1️⃣ Check user exists
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -194,7 +194,6 @@ export const AdminService = {
       },
     });
 
-    // 3️⃣ Cleanup related active data (optional but good)
     await prisma.subscription.deleteMany({
       where: { userId },
     });
@@ -202,8 +201,108 @@ export const AdminService = {
     return {
       success: true,
       status: 200,
-      message: "User deleted successfully",
+      message: "User Status Changed successfully",
     };
+  },
+
+  hardDeleteUser: async (prisma, userId) => {
+    try {
+      // 1️⃣ Check user exists
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        return {
+          success: false,
+          status: 404,
+          message: "User not found",
+        };
+      }
+
+      // 2️⃣ Transaction: delete everything safely
+      await prisma.$transaction(async (tx) => {
+        // ---- Auth & settings
+        await tx.authProvider.deleteMany({ where: { userId } });
+        await tx.userSettings.deleteMany({ where: { userId } });
+        await tx.notificationRecipient.deleteMany({ where: { userId } });
+
+        // ---- Subscriptions
+        await tx.subscriptionStudent.deleteMany({ where: { userId } });
+        await tx.subscription.deleteMany({ where: { userId } });
+
+        // ---- Applications & recommendations
+        await tx.application.deleteMany({ where: { userId } });
+        await tx.recommendation.deleteMany({ where: { userId } });
+
+        // ---- Essays & comparisons
+        await tx.essayComparison.deleteMany({ where: { userId } });
+        await tx.essay.deleteMany({ where: { userId } });
+
+        // ---- Profile-related (via UserProfile)
+        const profile = await tx.userProfile.findUnique({
+          where: { userId },
+          select: { id: true },
+        });
+
+        if (profile) {
+          const profileId = profile.id;
+
+          await tx.basicInformation.deleteMany({
+            where: { userProfileId: profileId },
+          });
+          await tx.academicInterest.deleteMany({
+            where: { userProfileId: profileId },
+          });
+          await tx.education.deleteMany({
+            where: { userProfileId: profileId },
+          });
+          await tx.volunteerWork.deleteMany({
+            where: { userProfileId: profileId },
+          });
+          await tx.familyBackground.deleteMany({
+            where: { userProfileId: profileId },
+          });
+          await tx.uniqueExperience.deleteMany({
+            where: { userProfileId: profileId },
+          });
+          await tx.diversityIdentity.deleteMany({
+            where: { userProfileId: profileId },
+          });
+          await tx.scholarshipSpecificInfo.deleteMany({
+            where: { userProfileId: profileId },
+          });
+          await tx.anythingElse.deleteMany({
+            where: { userProfileId: profileId },
+          });
+          await tx.essaySpecificQuestions.deleteMany({
+            where: { userProfileId: profileId },
+          });
+          await tx.extracurricularActivity.deleteMany({
+            where: { userProfileId: profileId },
+          });
+
+          await tx.userProfile.delete({ where: { id: profileId } });
+        }
+
+        // ---- Finally delete user
+        await tx.user.delete({ where: { id: userId } });
+      });
+
+      return {
+        success: true,
+        status: 200,
+        message: "User and all related data permanently deleted",
+      };
+    } catch (error) {
+      console.error("Hard delete user error:", error);
+
+      return {
+        success: false,
+        status: 400,
+        message: "Failed to permanently delete user",
+      };
+    }
   },
 
   // =========================
@@ -470,6 +569,49 @@ export const AdminService = {
         sortOrder: "asc",
       },
     });
+  },
+
+  togglePlanStatus: async (prisma, planId) => {
+    if (!planId) {
+      return {
+        success: false,
+        status: 400,
+        message: "Plan ID is required",
+      };
+    }
+
+    const plan = await prisma.plan.findUnique({
+      where: { id: planId },
+      select: {
+        id: true,
+        name: true,
+        isActive: true,
+      },
+    });
+
+    if (!plan) {
+      return {
+        success: false,
+        status: 404,
+        message: "Plan not found",
+      };
+    }
+
+    const updatedPlan = await prisma.plan.update({
+      where: { id: planId },
+      data: {
+        isActive: !plan.isActive,
+      },
+    });
+
+    return {
+      success: true,
+      status: 200,
+      message: `Plan "${updatedPlan.name}" ${
+        updatedPlan.isActive ? "activated" : "deactivated"
+      } successfully`,
+      data: updatedPlan,
+    };
   },
 
   // =========================
@@ -1107,7 +1249,7 @@ export const AdminService = {
       // ===== Monthly Revenue =====
       const monthlyRevenue = activeSubscriptions.reduce(
         (sum, sub) => sum + (sub.plan?.monthlyPrice || 0),
-        0
+        0,
       );
 
       // ===== Subscription Summary (Donut) =====
@@ -1221,7 +1363,7 @@ export const AdminService = {
       if (groupBy === "month") {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
           2,
-          "0"
+          "0",
         )}`;
       }
     };
@@ -1254,7 +1396,7 @@ export const AdminService = {
       } else if (groupBy === "month") {
         key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(
           2,
-          "0"
+          "0",
         )}`;
         cursor.setMonth(cursor.getMonth() + 1);
       }
@@ -1273,8 +1415,8 @@ export const AdminService = {
         type === "day"
           ? "Last 7 days"
           : type === "week"
-          ? "Last 4 weeks"
-          : "Last 6 months",
+            ? "Last 4 weeks"
+            : "Last 6 months",
       data: result,
     };
   },

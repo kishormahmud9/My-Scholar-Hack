@@ -92,6 +92,7 @@ model User {
   forgotPasswordStatus Boolean    @default(false)
 
   auths AuthProvider[]
+  settings UserSettings?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -580,4 +581,18 @@ enum FaqCategory {
   TECHNICAL
   SUPPORT
   ACADEMIC_INTEGRITY
+}
+
+model UserSettings {
+  id String @id @default(uuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  emailNotifications      Boolean @default(true)
+  userActivityAlerts      Boolean @default(true)
+  systemMaintenanceAlerts Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
