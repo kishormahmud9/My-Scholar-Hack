@@ -125,7 +125,7 @@ export const OtpService = {
     const savedOtp = await redisClient.get(redisKey);
 
     if (!savedOtp || savedOtp !== otp) {
-      throw new DevBuildError("Invalid or expired OTP", 401);
+      throw new DevBuildError("Invalid or expired OTP", 402);
     }
 
     // OTP is valid, generate a short-lived reset token
