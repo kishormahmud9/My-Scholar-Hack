@@ -18,7 +18,7 @@ export const AdminController = {
       const result = await AdminService.updateUserStatus(
         req.prisma,
         userId,
-        status
+        status,
       );
 
       return res.status(result.status).json({
@@ -33,11 +33,11 @@ export const AdminController = {
   // =========================
   // DELETE USER
   // =========================
-  deleteUser: async (req, res, next) => {
+  activeUser: async (req, res, next) => {
     try {
       const { userId } = req.params;
 
-      const result = await AdminService.deleteUser(req.prisma, userId);
+      const result = await AdminService.activeUser(req.prisma, userId);
 
       return res.status(result.status).json({
         success: result.success,
@@ -45,6 +45,21 @@ export const AdminController = {
       });
     } catch (error) {
       next(error); // only unexpected errors
+    }
+  },
+
+  hardDeleteUser: async (req, res, next) => {
+    try {
+      const { userId } = req.params;
+
+      const result = await AdminService.hardDeleteUser(req.prisma, userId);
+
+      return res.status(result.status).json({
+        success: result.success,
+        message: result.message,
+      });
+    } catch (error) {
+      next(error); // only real system-level failures
     }
   },
 
@@ -93,7 +108,7 @@ export const AdminController = {
       const result = await AdminService.deleteAdmin(
         req.prisma,
         adminId,
-        loggedInAdminId
+        loggedInAdminId,
       );
 
       res.status(result.status).json({
@@ -118,7 +133,7 @@ export const AdminController = {
         req.prisma,
         adminId,
         loggedInAdminId,
-        req.body
+        req.body,
       );
 
       return res.status(result.status).json({
@@ -176,7 +191,7 @@ export const AdminController = {
       const result = await AdminService.updatePlan(
         req.prisma,
         planId,
-        req.body
+        req.body,
       );
 
       return res.status(result.status).json({
@@ -304,7 +319,7 @@ export const AdminController = {
       const result = await AdminService.updateOffer(
         req.prisma,
         offerId,
-        req.body
+        req.body,
       );
 
       res.status(result.status).json({
