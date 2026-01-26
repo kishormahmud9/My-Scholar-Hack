@@ -73,11 +73,11 @@ export const OtpService = {
     const savedOtp = await redisClient.get(redisKey);
 
     if (!savedOtp) {
-      throw new DevBuildError("Invalid or expired OTP", 401);
+      throw new DevBuildError("Invalid or expired OTP", 402);
     }
 
     if (savedOtp !== otp) {
-      throw new DevBuildError("Invalid OTP", 401);
+      throw new DevBuildError("Invalid OTP", 402);
     }
 
     await prisma.user.update({

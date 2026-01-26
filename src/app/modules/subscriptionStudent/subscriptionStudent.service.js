@@ -83,6 +83,7 @@ export const SubscriptionStudentService = {
           where: {
             userId,
             isDeleted: false,
+            status: { not: "FAILED" }, // 👈 Exclude failed essays
             createdAt: { gte: threshold },
           },
         });
@@ -254,7 +255,11 @@ export const SubscriptionStudentService = {
     // 4️⃣ Free Trial Check (Only for users with no plans ever)
     const freeLimit = PLAN_LIMITS[PLAN_NAMES.FREE];
     const count = await prisma.essay.count({
-      where: { userId, isDeleted: false },
+      where: {
+        userId,
+        isDeleted: false,
+        status: { not: "FAILED" }, // 👈 Exclude failed essays
+      },
     });
     if (count >= freeLimit.maxEssays) {
       throw new DevBuildError(
