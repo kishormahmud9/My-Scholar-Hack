@@ -25,6 +25,7 @@ import { SubscriptionStudentRouter } from "../modules/subscriptionStudent/subscr
 import { NotificationRoutes } from "../modules/notification/notification.routes.js";
 import { DashboardStatsRoutes } from "../modules/dashboardStats/dashboardStats.route.js";
 import { SettingsRoutes } from "../modules/admin/settings/settings.route.js";
+import { StudentSettingsRoutes } from "../modules/studentSettings/studentSettings.route.js";
 
 export const router = Router();
 
@@ -112,6 +113,10 @@ const moduleRoutes = [
   {
     path: "/dashboard-stats",
     route: DashboardStatsRoutes,
+  },
+  {
+    path: "/student-settings",
+    route: StudentSettingsRoutes,
   },
 
   // --------------

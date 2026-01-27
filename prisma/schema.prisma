@@ -32,18 +32,7 @@ enum StudentSubscriptionStatus {
   LIMIT_CROSSED
 }
 
-enum FirstGenStatus {
-  yes
-  no
-  not_sure
-}
 
-enum ScholarshipDeadlineTimeline {
-  SIX_PLUS_MONTHS
-  THREE_TO_SIX_MONTHS
-  ONE_TO_THREE_MONTHS
-  LESS_THAN_ONE_MONTH
-}
 
 enum UserRole {
   STUDENT
@@ -60,13 +49,6 @@ enum UserStatus {
 enum AuthProviderType {
   EMAIL
   GOOGLE
-}
-
-enum SchoolType {
-  HIGH_SCHOOL
-  COLLEGE
-  UNIVERSITY
-  OTHER
 }
 
 enum EssayStatus {
@@ -91,20 +73,21 @@ model User {
   isDeleted            Boolean    @default(false)
   forgotPasswordStatus Boolean    @default(false)
 
-  auths AuthProvider[]
+  auths    AuthProvider[]
   settings UserSettings?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  profile             UserProfile?
-  subscriptions       Subscription[]
-  subscriptionStudent SubscriptionStudent[]
-  applications        Application[]
-  essays              Essay[]
-  recommendations     Recommendation[]
-  essayComparisons    EssayComparison[]
+  profile                UserProfile?
+  subscriptions          Subscription[]
+  subscriptionStudent    SubscriptionStudent[]
+  applications           Application[]
+  essays                 Essay[]
+  recommendations        Recommendation[]
+  essayComparisons       EssayComparison[]
   notificationRecipients NotificationRecipient[]
+  studentSettings        StudentSettings?
 
   @@index([role])
   @@index([status])
@@ -159,8 +142,8 @@ model BasicInformation {
   userProfile   UserProfile @relation(fields: [userProfileId], references: [id])
 
   fullName   String
-  schoolType SchoolType
-  gpa        Float?
+  schoolType String
+  gpa        Float
   grade      String?
   location   String?
 
@@ -217,7 +200,7 @@ model FamilyBackground {
   userProfileId String      @unique
   profile       UserProfile @relation(fields: [userProfileId], references: [id])
 
-  firstGenStatus       FirstGenStatus?
+  firstGenStatus       String?
   householdIncomeRange String?
   householdSize        Int?
   familySituations     String? // single-parent, immigrant, military, etc.
@@ -262,7 +245,7 @@ model ScholarshipSpecificInfo {
 
   scholarshipsInterested String[]
   specificScholarships   String?
-  scholarshipDeadline    ScholarshipDeadlineTimeline? // ✅ ENUM
+  scholarshipDeadline    String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -388,6 +371,7 @@ model Scholarship {
   provider String
 
   deadline    DateTime?
+  subject     String?
   description String?
   images      String[]
 
@@ -508,7 +492,7 @@ model Notification {
 }
 
 model NotificationRecipient {
-  id             String   @id @default(uuid())
+  id             String @id @default(uuid())
   notificationId String
   userId         String
 
@@ -581,6 +565,21 @@ enum FaqCategory {
   TECHNICAL
   SUPPORT
   ACADEMIC_INTEGRITY
+}
+
+model StudentSettings {
+  id String @id @default(uuid())
+
+  userId                  String  @unique
+  user                    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  fullName                String
+  emailNotifications      Boolean @default(true)
+  scholarshipUpdate      Boolean @default(true)
+  applicationReminders Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model UserSettings {

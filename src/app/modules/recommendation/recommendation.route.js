@@ -17,4 +17,22 @@ router.get(
   RecommendationController.getUserRecommendations
 );
 
+router.get(
+  "/all",
+  checkAuthMiddleware(...Object.values(Role)),
+  RecommendationController.getAllRecommendations
+);
+
+router.get(
+  "/scholarships",
+  checkAuthMiddleware(...Object.values(Role)),
+  RecommendationController.getScholarships
+);
+
+router.get(
+  "/user/:userId",
+  checkAuthMiddleware(...Object.values(Role)),
+  RecommendationController.getRecommendationByUserId
+);
+
 export const RecommendationRoutes = router;

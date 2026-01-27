@@ -26,11 +26,19 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
-  // Prisma errors (optional, safer)
+  // Prisma errors (Known request errors)
   if (err.code && err.code.startsWith("P")) {
     return res.status(400).json({
       success: false,
-      message: "Database error",
+      message: `Database error: ${err.message.split('\n').at(-1) || "Something went wrong"}`,
+    });
+  }
+
+  // Prisma Validation / Initialization errors
+  if (err.name?.includes("PrismaClient")) {
+    return res.status(400).json({
+      success: false,
+      message: err.message.split('\n').at(-1) || "Database validation error",
     });
   }
 
@@ -43,9 +51,9 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // Unknown errors
-  return res.status(500).json({
+  return res.status(err.statusCode || 500).json({
     success: false,
-    message: "Internal Server Error",
+    message: err.message || "Internal Server Error",
   });
 };
 

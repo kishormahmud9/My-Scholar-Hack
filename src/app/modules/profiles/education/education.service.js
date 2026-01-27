@@ -5,8 +5,8 @@ export const createEducation = async (userProfileId, data) => {
   const educationData = {
     institutionName: data.institutionName,
     level: data.level,
-    startYear: data.startYear,
-    endYear: data.endYear,
+    startYear: data.startYear ? parseInt(data.startYear) : undefined,
+    endYear: data.endYear ? parseInt(data.endYear) : undefined,
     major: data.major,
     achievements: data.achievements,
   };

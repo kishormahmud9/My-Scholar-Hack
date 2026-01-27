@@ -90,10 +90,13 @@ const createEssay = async (req, res, next) => {
       });
     }
 
-    // 0️⃣ Validate subscription limits
+    // 0️⃣ Validate profile completion
+    await EssayService.validateProfileCompletion(prisma, userId);
+
+    // 1️⃣ Validate subscription limits
     await SubscriptionStudentService.validateEssayLimit(prisma, userId);
 
-    // 1️⃣ Save prompt
+    // 2️⃣ Save prompt
     const essay = await EssayService.createPrompt(prisma, {
       userId,
       subject,

@@ -28,15 +28,29 @@ const generateRecommendations = async (req, res, next) => {
 
     // UPSERT SCHOLARSHIPS + PREPARE RECOMMENDATIONS
     for (const item of aiResults) {
+      const deadlineDate = (() => {
+        if (!item.deadline) return null;
+        const d = new Date(item.deadline);
+        return isNaN(d.getTime()) ? null : d;
+      })();
+
+      // 🛑 ONLY save if there is a valid deadline
+      if (!deadlineDate) continue;
+
+      // 💰 Extract amount from title or provided field
+      const amountFromTitle = item.title?.match(/\$(\d{1,3}(,\d{3})*)/)?.[1]?.replace(/,/g, "");
+      const parsedAmount = amountFromTitle
+        ? parseInt(amountFromTitle, 10)
+        : (item.amount ? parseInt(String(item.amount).replace(/[^0-9]/g, ""), 10) : 0);
+
       const scholarship =
         await RecommendationService.upsertScholarship(prisma, {
-          title: item.title,
+          title: item.title ? item.title.replace(/"/g, "") : item.title,
           type: item.type,
-          amount: item.amount
-            ? parseInt(String(item.amount).replace(/[^0-9]/g, ""), 10) || 0
-            : 0,
+          amount: parsedAmount || 0,
           provider: item.from ?? "AI_RECOMMENDATION",
-          deadline: item.deadline ? new Date(item.deadline) : null,
+          deadline: deadlineDate,
+          subject: item.subject ?? null,
           description: item.description ?? null,
           images: item.images ?? [],
         })
@@ -54,10 +68,18 @@ const generateRecommendations = async (req, res, next) => {
       await RecommendationService.createMany(prisma, recommendationData)
     }
 
+    // FETCH CREATED RECOMMENDATIONS WITH SCHOLARSHIP DATA
+    const result = await prisma.recommendation.findMany({
+      where: { userId },
+      include: {
+        scholarship: true,
+      },
+    })
+
     res.status(StatusCodes.CREATED).json({
       success: true,
       message: "Recommendations generated successfully",
-      data: recommendationData,
+      data: result,
     })
   } catch (error) {
     next(error);
@@ -87,7 +109,70 @@ const getUserRecommendations = async (req, res, next) => {
   }
 }
 
+const getAllRecommendations = async (req, res, next) => {
+  try {
+    const prisma = req.prisma
+
+    const result = await RecommendationService.getAll(
+      prisma,
+      req.query
+    )
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      meta: result.meta,
+      data: result.data,
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+const getRecommendationByUserId = async (req, res, next) => {
+  try {
+    const prisma = req.prisma;
+    const { userId } = req.params;
+
+    const result = await RecommendationService.getByUserId(
+      prisma,
+      userId,
+      req.query
+    );
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      meta: result.meta,
+      data: result.data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getScholarships = async (req, res, next) => {
+  try {
+    const prisma = req.prisma;
+
+    const result = await RecommendationService.getAllScholarships(
+      prisma,
+      req.query
+    );
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      meta: result.meta,
+      data: result.data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const RecommendationController = {
   generateRecommendations,
   getUserRecommendations,
-}
+  getAllRecommendations,
+  getRecommendationByUserId,
+  getScholarships,
+};
+

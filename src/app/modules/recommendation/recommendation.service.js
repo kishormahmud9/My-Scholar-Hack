@@ -50,17 +50,17 @@ export const RecommendationService = {
     })
   },
 
-  getByUserId: async (prisma, userId, query) => {
+  getAll: async (prisma, query, filter = {}) => {
     const builder = new QueryBuilder(query)
       .search([
         "reason",
         { scholarship: scholarshipSearchableFields },
       ])
       .filter({
-        scholarship: ["type", "amount", "provider"],
+        scholarship: ["type", "amount", "provider", "subject"],
       })
       .sort("-createdAt", {
-        scholarship: ["type", "amount", "provider"],
+        scholarship: ["type", "amount", "provider", "subject"],
       })
       .fields()
       .paginate();
@@ -69,11 +69,10 @@ export const RecommendationService = {
 
     prismaQuery.where = {
       ...(prismaQuery.where || {}),
-      userId,
+      ...filter,
     };
 
     // Prisma doesn't allow both 'select' and 'include' at the same level.
-    // If 'select' is present, we must put 'scholarship' inside it.
     if (prismaQuery.select) {
       prismaQuery.select.scholarship = true;
     } else {
@@ -92,6 +91,31 @@ export const RecommendationService = {
       data,
       meta: builder.getMeta(total),
     };
-  }
+  },
 
-}
+  getByUserId: async (prisma, userId, query) => {
+    return RecommendationService.getAll(prisma, query, { userId });
+  },
+
+  getAllScholarships: async (prisma, query) => {
+    const builder = new QueryBuilder(query)
+      .search(scholarshipSearchableFields)
+      .filter()
+      .sort("-createdAt")
+      .fields()
+      .paginate();
+
+    const prismaQuery = builder.build();
+
+    const data = await prisma.scholarship.findMany(prismaQuery);
+    const total = await prisma.scholarship.count({
+      where: prismaQuery.where,
+    });
+
+    return {
+      data,
+      meta: builder.getMeta(total),
+    };
+  },
+};
+
