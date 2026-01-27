@@ -2,8 +2,10 @@ import prisma from "../../prisma/client.js";
 import { addDays } from "date-fns";
 import DevBuildError from "../../lib/DevBuildError.js";
 import { StatusCodes } from "http-status-codes";
+import path from "path";
 import { SubscriptionStudentService } from "../subscriptionStudent/subscriptionStudent.service.js";
 import { SAMCART_CHECKOUT_URLS } from "./payment.constant.js";
+import { generateInvoicePDF } from "../../utils/template/invoice.mjs";
 
 const PRODUCT_PLAN_MAP = {
   "HackScholarAgent:  Essay Hack": "essay_hack",
@@ -111,7 +113,30 @@ const processSamcartEvent = async (payload) => {
       },
     });
 
-    // 2️⃣ Create SubscriptionStudent record for the queueing system
+    // 2️⃣ Generate Invoice PDF
+    const invoiceDir = "uploads/invoice";
+    const invoiceFileName = `invoice-${order.id}-${Date.now()}.pdf`;
+    const invoiceFilePath = path.join(invoiceDir, invoiceFileName);
+    const invoiceUrl = `/uploads/invoice/${invoiceFileName}`;
+
+    try {
+      const invoiceData = {
+        orderId: order.id,
+        customerName: `${customer.first_name || ""} ${customer.last_name || ""}`.trim() || email,
+        customerEmail: email,
+        productName: productName,
+        amount: product.price || 0,
+        date: now.toLocaleDateString(),
+      };
+
+      await generateInvoicePDF(invoiceData, invoiceFilePath);
+      console.log(`📄 Invoice generated at: ${invoiceFilePath}`);
+    } catch (invoiceError) {
+      console.error("⚠️ Failed to generate invoice:", invoiceError.message);
+      // We don't throw here to avoid failing the payment processing if only invoice generation fails
+    }
+
+    // 3️⃣ Create SubscriptionStudent record for the queueing system
     // Determine if it should be ACTIVE or INACTIVE
     const existingActive = await prisma.subscriptionStudent.findFirst({
       where: {
@@ -131,12 +156,14 @@ const processSamcartEvent = async (payload) => {
         purchaseDate: now,
         endDate: expiresAt,
         payload: payload, // Store the raw SamCart webhook payload
+        invoiceUrl: invoiceUrl,
+        invoiceFilePath: invoiceFilePath.replace(/\\/g, "/"),
       },
     });
 
     console.log(`✨ SubscriptionStudent created for user ${user.id} with status ${studentStatus}`);
 
-    // 3️⃣ Run maintenance to ensure the correct plan is active
+    // 4️⃣ Run maintenance to ensure the correct plan is active
     await SubscriptionStudentService.maintainSubscriptions(prisma, user.id);
 
     return;

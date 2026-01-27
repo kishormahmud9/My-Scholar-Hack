@@ -434,6 +434,7 @@ model SubscriptionStudent {
   endDate            DateTime
   payload            Json?
   invoiceUrl         String?
+  invoiceFilePath    String?
 
   user         User         @relation(fields: [userId], references: [id])
   subscription Subscription @relation(fields: [subscriptionId], references: [id])
