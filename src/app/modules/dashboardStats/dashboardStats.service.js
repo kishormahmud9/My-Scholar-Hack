@@ -5,6 +5,7 @@ const getStats = async (prisma, userId) => {
         where: {
             userId,
             isDeleted: false,
+            status: { not: "FAILED" },
         },
     });
 
@@ -44,6 +45,7 @@ const getStats = async (prisma, userId) => {
         where: {
             userId,
             isDeleted: false,
+            status: { not: "FAILED" },
         },
         orderBy: {
             createdAt: "desc",

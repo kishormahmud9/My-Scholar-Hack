@@ -27,9 +27,10 @@ router.get(
   SubscriptionStudentController.getSubscriptionById
 );
 
-// Purchase or upgrade subscription
+// Purchase or upgrade subscription (ADMIN ONLY)
 router.post(
   "/purchase",
+  checkAuthMiddleware(Role.ADMIN, Role.OWNER),
   SubscriptionStudentController.purchaseSubscription
 );
 

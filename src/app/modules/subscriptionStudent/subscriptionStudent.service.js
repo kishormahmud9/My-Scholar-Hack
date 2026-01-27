@@ -21,7 +21,7 @@ export const SubscriptionStudentService = {
     const activePlan = await prisma.subscriptionStudent.findFirst({
       where: {
         userId,
-        subscriptionStatus: "ACTIVE",
+        subscriptionStatus: { in: ["ACTIVE", "TRAIL"] },
         endDate: { gt: now },
       },
     });
@@ -37,9 +37,17 @@ export const SubscriptionStudentService = {
       });
 
       if (nextPlan) {
+        // Find the parent subscription to see if it was a trial
+        const parentSub = await prisma.subscription.findUnique({
+          where: { id: nextPlan.subscriptionId },
+        });
+
+        const activatedStatus =
+          parentSub?.status === "trial" ? "TRAIL" : "ACTIVE";
+
         await prisma.subscriptionStudent.update({
           where: { id: nextPlan.id },
-          data: { subscriptionStatus: "ACTIVE", purchaseDate: now },
+          data: { subscriptionStatus: activatedStatus, purchaseDate: now },
         });
         // Recursively call to check limits for the newly activated plan
         return SubscriptionStudentService.maintainSubscriptions(prisma, userId);
@@ -50,7 +58,7 @@ export const SubscriptionStudentService = {
     const currentActive = await prisma.subscriptionStudent.findFirst({
       where: {
         userId,
-        subscriptionStatus: "ACTIVE",
+        subscriptionStatus: { in: ["ACTIVE", "TRAIL"] },
         endDate: { gt: now },
       },
       include: {
@@ -216,58 +224,41 @@ export const SubscriptionStudentService = {
 
     const now = new Date();
 
-    // 2️⃣ Check for currently ACTIVE plan
+    // 2️⃣ Check for currently ACTIVE or TRAIL plan
     const activePlan = await prisma.subscriptionStudent.findFirst({
       where: {
         userId,
-        subscriptionStatus: "ACTIVE",
+        subscriptionStatus: { in: ["ACTIVE", "TRAIL"] },
         endDate: { gt: now },
-      },
-      include: {
-        subscription: { include: { plan: true } },
       },
     });
 
     if (activePlan) {
-      // If active exists, it MUST have balance (otherwise maintainSubscriptions would have crossed it)
+      // If active/trail exists, return true (limits are handled by maintainSubscriptions)
       return true;
     }
 
-    // 3️⃣ If no active plan, check for Any plans (if they have plans but all are LIMIT_CROSSED and no INACTIVE)
+    // 3️⃣ If no active plan, check for Any plans (including Limit Crossed and Inactive)
     const anyPlans = await prisma.subscriptionStudent.findMany({
       where: {
         userId,
-        subscriptionStatus: { in: ["ACTIVE", "LIMIT_CROSSED", "INACTIVE"] },
+        subscriptionStatus: { in: ["ACTIVE", "TRAIL", "LIMIT_CROSSED", "INACTIVE"] },
         endDate: { gt: now },
       },
     });
 
     if (anyPlans.length > 0) {
-      // User has plans but they are all either crossed or inactive (queue is stuck?)
-      // Actually if they have INACTIVE plans, the maintainSubscriptions should have promoted them if no ACTIVE existed.
-      // So if we reach here and there are plans, they must all be LIMIT_CROSSED.
+      // User has plans but they are all either crossed or inactive
       throw new DevBuildError(
         "You have reached the essay limit for your plans. Please purchase a new plan to continue.",
         StatusCodes.FORBIDDEN
       );
     }
 
-    // 4️⃣ Free Trial Check (Only for users with no plans ever)
-    const freeLimit = PLAN_LIMITS[PLAN_NAMES.FREE];
-    const count = await prisma.essay.count({
-      where: {
-        userId,
-        isDeleted: false,
-        status: { not: "FAILED" }, // 👈 Exclude failed essays
-      },
-    });
-    if (count >= freeLimit.maxEssays) {
-      throw new DevBuildError(
-        `You have reached the limit of ${freeLimit.maxEssays} essays for your Free plan.`,
-        StatusCodes.FORBIDDEN
-      );
-    }
-
-    return true;
+    // 4️⃣ No plans found - Mandate Trial Plan
+    throw new DevBuildError(
+      "Please get a free trial plan first to generate your first essay.",
+      StatusCodes.FORBIDDEN
+    );
   },
 };

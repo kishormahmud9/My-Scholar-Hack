@@ -1,12 +1,11 @@
 import { paymentService } from "./payment.service.js";
 import { createNotificationForAdmins } from "../notification/notification.service.js";
+import { StatusCodes } from "http-status-codes";
 
 const handleSamcartWebhook = async (req, res, next) => {
   try {
     const payload = req.body;
-
     console.log("Processing SamCart Payload:", payload);
-
     await paymentService.processSamcartEvent(payload);
 
     // 🔔 Admin Notification Hook (crash-safe)
@@ -44,6 +43,55 @@ const handleSamcartWebhook = async (req, res, next) => {
   }
 };
 
+const verifyPayment = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const recentSub = await paymentService.checkRecentSubscription(userId);
+
+    if (!recentSub) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        message:
+          "No recent successful payment found. Please wait a moment or contact support if the issue persists.",
+      });
+    }
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Payment verified successfully",
+      data: recentSub,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const initiatePurchase = async (req, res, next) => {
+  try {
+    const { planKey } = req.params;
+    const email = req.user.email;
+
+    const checkoutUrl = await paymentService.getCheckoutUrl(planKey, email);
+
+    if (!checkoutUrl) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        message: `Plan not found: ${planKey}`,
+      });
+    }
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Checkout URL generated successfully",
+      data: { checkoutUrl },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const paymentController = {
   handleSamcartWebhook,
+  verifyPayment,
+  initiatePurchase,
 };

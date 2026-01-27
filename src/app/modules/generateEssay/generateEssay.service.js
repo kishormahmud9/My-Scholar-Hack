@@ -1,4 +1,6 @@
 import axios from "axios";
+import fs from "fs";
+import path from "path";
 import { envVars } from "../../config/env.js";
 import { QueryBuilder } from "../../utils/QueryBuilder.js";
 import {
@@ -158,22 +160,54 @@ export const EssayService = {
     });
   },
 
-  // AI CALL
-  generateEssayByAI: async (title, prompt, voiceUrl = null, documentUrls = []) => {
-    // Convert local paths to full URLs if they exist
-    const fullVoiceUrl = voiceUrl ? `${envVars.SERVER_URL}/${voiceUrl}` : null;
-    const fullDocumentUrls = documentUrls.map(doc => `${envVars.SERVER_URL}/${doc}`);
+  // AI CALL (Updated Sig: prompt, audioPath, filePath)
+  generateEssayByAI: async (prompt, voicePath = null, documentPath = null) => {
+    try {
+      console.log("🚀 Forwarding to AI Service...");
+      console.log("- Prompt length:", prompt?.length || 0);
 
-    const response = await axios.post(envVars.AI_SERVICE_URL, {
-      title,
-      prompt,
-      voiceUrl: fullVoiceUrl,
-      documentUrls: fullDocumentUrls,
-    });
+      const formData = new FormData();
+      formData.append("prompt", prompt || "");
 
-    return response.data;
+      // 1️⃣ Attach local voice file (if exists)
+      if (voicePath && fs.existsSync(voicePath)) {
+        console.log(`- Attaching local audio: ${voicePath}`);
+        const fileContent = fs.readFileSync(voicePath);
+        const fileName = path.basename(voicePath);
+        const blob = new Blob([fileContent]);
+        formData.append("audio", blob, fileName);
+      } else if (voicePath) {
+        console.warn(`⚠️ Local audio file not found at: ${voicePath}`);
+      }
+
+      // 2️⃣ Attach local document file (if exists)
+      if (documentPath && fs.existsSync(documentPath)) {
+        console.log(`- Attaching local file: ${documentPath}`);
+        const fileContent = fs.readFileSync(documentPath);
+        const fileName = path.basename(documentPath);
+        const blob = new Blob([fileContent]);
+        formData.append("file", blob, fileName);
+      } else if (documentPath) {
+        console.warn(`⚠️ Local document file not found at: ${documentPath}`);
+      }
+
+      console.log("📤 Sending POST request to AI Service at:", envVars.AI_SERVICE_URL);
+
+      const response = await axios.post(envVars.AI_SERVICE_URL, formData);
+
+      console.log("✅ AI Service Response received:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("❌ AI Service Communication Error:");
+      if (error.response) {
+        console.error("Status:", error.response.status);
+        console.error("Data:", error.response.data);
+      } else {
+        console.error("Message:", error.message);
+      }
+      throw error;
+    }
   },
-
   // 🛡️ VALIDATE profile completion
   validateProfileCompletion: async (prisma, userId) => {
     const profile = await prisma.userProfile.findUnique({

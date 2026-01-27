@@ -2,6 +2,8 @@ import prisma from "../../prisma/client.js";
 import { addDays } from "date-fns";
 import DevBuildError from "../../lib/DevBuildError.js";
 import { StatusCodes } from "http-status-codes";
+import { SubscriptionStudentService } from "../subscriptionStudent/subscriptionStudent.service.js";
+import { SAMCART_CHECKOUT_URLS } from "./payment.constant.js";
 
 const PRODUCT_PLAN_MAP = {
   "HackScholarAgent:  Essay Hack": "essay_hack",
@@ -24,11 +26,23 @@ const processSamcartEvent = async (payload) => {
   }
 
   const email = customer.email.toLowerCase();
-  const productName = product.name;
+  const productName = product.name.trim();
 
-  const planKey = PRODUCT_PLAN_MAP[productName];
+  // Find planKey (robust matching)
+  let planKey = null;
+  for (const [key, value] of Object.entries(PRODUCT_PLAN_MAP)) {
+    // Normalize spaces and case for matching
+    const normalizedKey = key.replace(/\s+/g, " ").toLowerCase();
+    const normalizedProductName = productName.replace(/\s+/g, " ").toLowerCase();
+
+    if (normalizedKey === normalizedProductName || normalizedProductName.includes(value.replace(/_/g, " "))) {
+      planKey = value;
+      break;
+    }
+  }
 
   if (!planKey) {
+    console.error(`❌ Unknown product: "${productName}"`);
     throw new DevBuildError(
       `Unknown product: ${productName}`,
       StatusCodes.BAD_REQUEST
@@ -40,6 +54,7 @@ const processSamcartEvent = async (payload) => {
   });
 
   if (!user) {
+    console.error(`❌ User not found for email: ${email}`);
     throw new DevBuildError(
       "User not found for this email",
       StatusCodes.NOT_FOUND
@@ -51,6 +66,7 @@ const processSamcartEvent = async (payload) => {
   });
 
   if (!plan) {
+    console.error(`❌ Plan not found in DB: ${planKey}`);
     throw new DevBuildError(
       `Plan not found in DB: ${planKey}`,
       StatusCodes.NOT_FOUND
@@ -59,44 +75,34 @@ const processSamcartEvent = async (payload) => {
 
   const now = new Date();
 
-  const existingSub = await prisma.subscription.findFirst({
-    where: {
-      userId: user.id,
-      status: { in: ["active", "trial"] },
-    },
-  });
-
   // ✅ Successful Order
   if (type === "Order") {
+    console.log(`✅ Processing successful order for user ${user.id}, plan ${planKey}`);
     let status = "active";
-    let expiresAt = null;
+    let expiresAt = addDays(now, 30); // Default to 30 days
 
+    // Determine if it should be a trial (Only for first-time essay_hack orders)
     if (planKey === "essay_hack") {
-      status = "trial";
-      expiresAt = addDays(now, TRIAL_DAYS);
-    }
-
-    if (existingSub) {
-      if (existingSub.planId === plan.id) {
-        if (existingSub.expiresAt) {
-          expiresAt = addDays(existingSub.expiresAt, TRIAL_DAYS);
-        }
-
-        await prisma.subscription.update({
-          where: { id: existingSub.id },
-          data: { status, expiresAt },
-        });
-
-        return;
-      }
-
-      await prisma.subscription.update({
-        where: { id: existingSub.id },
-        data: { status: "canceled" },
+      const hasUsedTrial = await prisma.subscription.findFirst({
+        where: {
+          userId: user.id,
+          planId: plan.id,
+          status: "trial",
+        },
       });
+
+      if (!hasUsedTrial) {
+        status = "trial";
+        expiresAt = addDays(now, TRIAL_DAYS);
+      } else {
+        // This is a paid order/renewal for the same plan
+        status = "active";
+        expiresAt = addDays(now, 30);
+      }
     }
 
-    await prisma.subscription.create({
+    // 1️⃣ ALWAYS Create a new Subscription record
+    const subscription = await prisma.subscription.create({
       data: {
         userId: user.id,
         planId: plan.id,
@@ -105,11 +111,49 @@ const processSamcartEvent = async (payload) => {
       },
     });
 
+    // 2️⃣ Create SubscriptionStudent record for the queueing system
+    // Determine if it should be ACTIVE or INACTIVE
+    const existingActive = await prisma.subscriptionStudent.findFirst({
+      where: {
+        userId: user.id,
+        subscriptionStatus: { in: ["ACTIVE", "TRAIL", "LIMIT_CROSSED"] },
+        endDate: { gt: now },
+      },
+    });
+
+    const studentStatus = existingActive ? "INACTIVE" : (status === "trial" ? "TRAIL" : "ACTIVE");
+
+    await prisma.subscriptionStudent.create({
+      data: {
+        userId: user.id,
+        subscriptionId: subscription.id,
+        subscriptionStatus: studentStatus,
+        purchaseDate: now,
+        endDate: expiresAt,
+        payload: payload, // Store the raw SamCart webhook payload
+      },
+    });
+
+    console.log(`✨ SubscriptionStudent created for user ${user.id} with status ${studentStatus}`);
+
+    // 3️⃣ Run maintenance to ensure the correct plan is active
+    await SubscriptionStudentService.maintainSubscriptions(prisma, user.id);
+
     return;
   }
 
   // ❌ Cancellation
   if (type === "Cancellation") {
+    // Note: existingSub was not defined in the original snippet for Cancellation/Failed payment
+    // But logically we should find the active subscription for the user/plan
+    const existingSub = await prisma.subscription.findFirst({
+      where: {
+        userId: user.id,
+        status: { in: ["active", "trial", "past_due"] },
+      },
+      orderBy: { createdAt: "desc" }
+    });
+
     if (!existingSub) return;
 
     await prisma.subscription.update({
@@ -122,6 +166,14 @@ const processSamcartEvent = async (payload) => {
 
   // ❌ Failed Payment
   if (type === "Failed payment") {
+    const existingSub = await prisma.subscription.findFirst({
+      where: {
+        userId: user.id,
+        status: { in: ["active", "trial"] },
+      },
+      orderBy: { createdAt: "desc" }
+    });
+
     if (!existingSub) return;
 
     await prisma.subscription.update({
@@ -135,4 +187,39 @@ const processSamcartEvent = async (payload) => {
 
 export const paymentService = {
   processSamcartEvent,
+  checkRecentSubscription: async (userId) => {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+
+    const recentSubscription = await prisma.subscriptionStudent.findFirst({
+      where: {
+        userId,
+        subscriptionStatus: { in: ["ACTIVE", "TRAIL"] },
+        purchaseDate: { gte: fiveMinutesAgo },
+      },
+      include: {
+        subscription: {
+          include: {
+            plan: true,
+          },
+        },
+      },
+    });
+
+    return recentSubscription;
+  },
+  getCheckoutUrl: async (planKey, email) => {
+    const baseUrl = SAMCART_CHECKOUT_URLS[planKey];
+    if (!baseUrl) return null;
+
+    // Check if URL has a fragment (#)
+    const [mainUrl, fragment] = baseUrl.split("#");
+    const separator = mainUrl.includes("?") ? "&" : "?";
+
+    // Reconstruct URL: mainUrl + ?email=... + #fragment
+    const finalUrl = `${mainUrl}${separator}email=${encodeURIComponent(
+      email
+    )}${fragment ? "#" + fragment : ""}`;
+
+    return finalUrl;
+  },
 };

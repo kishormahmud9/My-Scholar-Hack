@@ -432,6 +432,8 @@ model SubscriptionStudent {
   subscriptionStatus StudentSubscriptionStatus @default(ACTIVE)
   purchaseDate       DateTime                  @default(now())
   endDate            DateTime
+  payload            Json?
+  invoiceUrl         String?
 
   user         User         @relation(fields: [userId], references: [id])
   subscription Subscription @relation(fields: [subscriptionId], references: [id])
