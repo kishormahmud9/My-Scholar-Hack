@@ -13,8 +13,12 @@ const getMySubscription = async (req, res, next) => {
     const prisma = req.app.get("prisma");
     const userId = req.user.id;
 
+    console.log(`🔍 Fetching subscriptions for userId: ${userId}`);
+
     const subscriptions =
       await SubscriptionStudentService.getMySubscription(prisma, userId);
+
+    console.log(`📊 Found ${subscriptions.length} subscriptions for user ${userId}`);
 
     sendResponse(res, {
       success: true,

@@ -20,6 +20,8 @@ router.get(
   UserController.userDetails
 );
 
+// all user profile public
+
 router.get("/all", UserController.getAllUsersWithProfile);
 
 router.post(

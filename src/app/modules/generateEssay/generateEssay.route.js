@@ -23,10 +23,13 @@ router.post(
   checkAuthMiddleware(Role.STUDENT),
   upload.fields([
     { name: "voice", maxCount: 1 },
+    { name: "audio", maxCount: 1 },
     { name: "documents", maxCount: 5 },
+    { name: "file", maxCount: 5 },
   ]),
   EssayController.createEssay
 );
+
 
 // EDIT essay anytime
 router.patch(
