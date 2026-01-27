@@ -1,6 +1,6 @@
 
 
-const getStats = async (prisma,userId) => {
+const getStats = async (prisma, userId) => {
     const totalEssays = await prisma.essay.count({
         where: {
             userId,
@@ -30,10 +30,33 @@ const getStats = async (prisma,userId) => {
         },
     });
 
+    const recommendations = await prisma.recommendation.findMany({
+        where: { userId },
+        include: {
+            scholarship: true,
+        },
+        orderBy: {
+            createdAt: "desc",
+        },
+    });
+
+    const essays = await prisma.essay.findMany({
+        where: {
+            userId,
+            isDeleted: false,
+        },
+        orderBy: {
+            createdAt: "desc",
+        },
+    });
+
     return {
         totalEssays,
         scholarshipAdded,
+        totalRecommendations: recommendations.length,
         upcomingDeadline,
+        essays,
+        recommendations,
     };
 };
 

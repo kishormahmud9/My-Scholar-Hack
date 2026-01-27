@@ -48,6 +48,14 @@ app.get("/", (req, res) => {
   res.send("<h1>My Scholar Hack API is running...⚡</h1>");
 });
 
+// Route not found handler
+app.use((req, res, next) => {
+  res.status(404).json({
+    success: false,
+    message: "Route not found",
+  });
+});
+
 // Error handler (always last)
 app.use(errorHandler);
 

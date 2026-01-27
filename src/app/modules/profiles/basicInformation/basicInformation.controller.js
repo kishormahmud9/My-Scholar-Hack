@@ -48,11 +48,16 @@ const saveBasicInformation = async (req, res, next) => {
       });
     }
 
+    const data = { ...req.body };
+    if (data.gpa) {
+      data.gpa = parseFloat(data.gpa);
+    }
+
     const result =
       await BasicInformationService.upsert(
         prisma,
         profile.id,
-        req.body
+        data
       );
 
     res.status(StatusCodes.OK).json({

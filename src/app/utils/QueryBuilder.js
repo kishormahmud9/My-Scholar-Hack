@@ -24,12 +24,23 @@ export class QueryBuilder {
       if (value !== undefined && value !== "") {
         let isRelational = false;
 
+        // 🛡️ Case-insensitive support for strings
+        let finalValue = value;
+        if (
+          typeof value === "string" &&
+          isNaN(value) &&
+          value.toLowerCase() !== "true" &&
+          value.toLowerCase() !== "false"
+        ) {
+          finalValue = { equals: value, mode: "insensitive" };
+        }
+
         // Check if the key belongs to a relation based on config
         for (const [relation, fields] of Object.entries(relationConfig)) {
           if (fields.includes(key)) {
             this.where[relation] = {
               ...(this.where[relation] || {}),
-              [key]: value,
+              [key]: finalValue,
             };
             isRelational = true;
             break;
@@ -37,7 +48,7 @@ export class QueryBuilder {
         }
 
         if (!isRelational) {
-          this.where[key] = value;
+          this.where[key] = finalValue;
         }
       }
     });
@@ -59,7 +70,7 @@ export class QueryBuilder {
 
 
   search(searchConfig = []) {
-    const searchTerm = this.query.searchTerm || this.query.searchParam ;
+    const searchTerm = this.query.searchTerm || this.query.searchParam;
     if (!searchTerm || !searchConfig.length) return this;
 
     this.where.OR = searchConfig.map(field => {

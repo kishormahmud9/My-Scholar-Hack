@@ -104,6 +104,11 @@ const upsertUserProfile = async (req, res) => {
       }
     });
 
+    // 🔢 Parse numerical fields
+    if (data.gpa) {
+      data.gpa = parseFloat(data.gpa);
+    }
+
     // 💾 UPSERT
     const profile = await ProfileService.upsertByUserId(
       prisma,
@@ -114,7 +119,7 @@ const upsertUserProfile = async (req, res) => {
     // 🗑️ Delete old file AFTER successful DB save
     if (oldProfile?.filePath && req.file) {
       const oldFileAbsolutePath = path.resolve(oldProfile.filePath);
-      fs.unlink(oldFileAbsolutePath, () => {});
+      fs.unlink(oldFileAbsolutePath, () => { });
     }
 
     return res.json({
@@ -123,11 +128,7 @@ const upsertUserProfile = async (req, res) => {
       data: profile,
     });
   } catch (error) {
-    console.error("upsertUserProfile error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to save user profile",
-    });
+    next(error);
   }
 };
 
@@ -146,11 +147,7 @@ const getProfileMe = async (req, res) => {
       data: profile,
     });
   } catch (error) {
-    console.error("getProfileMe error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch profile",
-    });
+    next(error);
   }
 };
 

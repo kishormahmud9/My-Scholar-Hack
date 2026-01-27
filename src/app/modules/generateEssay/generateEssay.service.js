@@ -173,4 +173,57 @@ export const EssayService = {
 
     return response.data;
   },
+
+  // 🛡️ VALIDATE profile completion
+  validateProfileCompletion: async (prisma, userId) => {
+    const profile = await prisma.userProfile.findUnique({
+      where: { userId },
+      include: {
+        basicInformation: true,
+        academicInterest: true,
+        education: true,
+        extraCurricularsActivity: true,
+        volunteerWork: true,
+        familyBackground: true,
+        uniqueExperience: true,
+        diversityIdentity: true,
+        scholarshipSpecificInfo: true,
+        essaySpecificQuestions: true,
+      },
+    });
+
+    if (!profile) {
+      const error = new Error("Please complete your profile first.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const sections = [
+      { name: "Basic Information", data: profile.basicInformation },
+      { name: "Academic Interest", data: profile.academicInterest },
+      { name: "Education", data: profile.education },
+      { name: "Extra Curriculars Activity", data: profile.extraCurricularsActivity },
+      { name: "Volunteer Work", data: profile.volunteerWork },
+      { name: "Family Background", data: profile.familyBackground },
+      { name: "Unique Experience", data: profile.uniqueExperience },
+      { name: "Diversity Identity", data: profile.diversityIdentity },
+      { name: "Scholarship Specific Info", data: profile.scholarshipSpecificInfo },
+      { name: "Essay Specific Questions", data: profile.essaySpecificQuestions },
+    ];
+
+    const missingSections = sections
+      .filter((s) => !s.data)
+      .map((s) => s.name);
+
+    if (missingSections.length > 0) {
+      const error = new Error(
+        `Please complete the following profile sections: ${missingSections.join(", ")}`
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    return profile;
+  },
 };
+
