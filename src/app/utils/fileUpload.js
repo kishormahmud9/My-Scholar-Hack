@@ -1,37 +1,54 @@
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
+import { fileURLToPath } from "url";
 
+/* ES module dirname fix */
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+/* Base upload dir */
+const UPLOAD_DIR = path.join(process.cwd(), "uploads");
+
+/* Ensure base dir exists */
+if (!fs.existsSync(UPLOAD_DIR)) {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+
+/* Storage */
 const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        console.log("📂 Multer Destination reached for:", file.fieldname);
-        const uploadPath = path.join(process.cwd(), "uploads", "essays");
-        if (!fs.existsSync(uploadPath)) {
-            fs.mkdirSync(uploadPath, { recursive: true });
+    destination(req, file, cb) {
+        let fieldFolder = file.fieldname; // separate by field name (default)
+
+        // 📝 Custom logic for Essay module
+        if (req.originalUrl.includes("/generate-essay")) {
+            fieldFolder = "essays";
         }
+
+        const uploadPath = path.join(UPLOAD_DIR, fieldFolder);
+
+        fs.mkdirSync(uploadPath, { recursive: true });
         cb(null, uploadPath);
     },
-    filename: function (req, file, cb) {
-        console.log("📄 Multer Filename reached for:", file.originalname);
-        const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-        cb(null, file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname));
+
+    filename(req, file, cb) {
+        const ext = path.extname(file.originalname);
+        const filename = `${crypto.randomUUID()}${ext}`;
+        cb(null, filename);
     },
 });
 
+/* Allow ALL files */
 const fileFilter = (req, file, cb) => {
-    console.log("🔍 Multer Filtering file:", {
-        fieldname: file.fieldname,
-        originalname: file.originalname,
-        mimetype: file.mimetype
-    });
-
-    // Allow everything temporarily for debugging
     cb(null, true);
 };
 
+/* Multer instance */
 export const upload = multer({
-    storage: storage,
-    fileFilter: fileFilter,
+    storage,
+    fileFilter,
+    limits: {
+        fileSize: 50 * 1024 * 1024, // 50MB
+    },
 });
-
-

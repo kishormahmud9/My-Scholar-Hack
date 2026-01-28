@@ -34,9 +34,6 @@ const generateRecommendations = async (req, res, next) => {
         return isNaN(d.getTime()) ? null : d;
       })();
 
-      // 🛑 ONLY save if there is a valid deadline
-      if (!deadlineDate) continue;
-
       // 💰 Extract amount from title or provided field
       const amountFromTitle = item.title?.match(/\$(\d{1,3}(,\d{3})*)/)?.[1]?.replace(/,/g, "");
       const parsedAmount = amountFromTitle

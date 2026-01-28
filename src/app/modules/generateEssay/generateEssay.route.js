@@ -25,6 +25,7 @@ router.post(
     { name: "voice", maxCount: 1 },
     { name: "audio", maxCount: 1 },
     { name: "documents", maxCount: 5 },
+      { name: "document", maxCount: 5 }, 
     { name: "file", maxCount: 5 },
   ]),
   EssayController.createEssay
