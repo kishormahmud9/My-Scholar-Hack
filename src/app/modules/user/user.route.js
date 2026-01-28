@@ -1,7 +1,7 @@
 import express from "express";
-import { UserController } from "./user.controller.js";
-import { Role } from "../../utils/role.js";
 import { checkAuthMiddleware } from "../../middleware/checkAuthMiddleware.js";
+import { Role } from "../../utils/role.js";
+import { UserController } from "./user.controller.js";
 
 const router = express.Router();
 
@@ -22,7 +22,7 @@ router.get(
 
 // all user profile public
 
-router.get("/all", UserController.getAllUsersWithProfile);
+router.get("/all/get37264", UserController.getAllUsersWithProfile);
 
 router.post(
   "/update-user",
