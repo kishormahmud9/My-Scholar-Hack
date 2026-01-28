@@ -7,6 +7,8 @@ import {
   essaySearchableFields,
 } from "./generateEssay.constant.js";
 
+import FormData from "form-data";
+
 // src/constants/essayStatus.js
 export const ESSAY_STATUS = {
   GENERATING: "GENERATING",
@@ -79,7 +81,7 @@ export const EssayService = {
     return prisma.essay.create({
       data: {
         ...data,
-        status: ESSAY_STATUS.GENERATING,
+        status: data.status || ESSAY_STATUS.GENERATING,
         voiceUrl: data.voiceUrl || null,
         documentUrls: data.documentUrls || [],
         voiceFilePath: data.voiceFilePath || null,
@@ -172,42 +174,56 @@ export const EssayService = {
       // 1️⃣ Attach local voice file (if exists)
       if (voicePath && fs.existsSync(voicePath)) {
         console.log(`- Attaching local audio: ${voicePath}`);
-        const fileContent = fs.readFileSync(voicePath);
-        const fileName = path.basename(voicePath);
-        const blob = new Blob([fileContent]);
-        formData.append("audio", blob, fileName);
-      } else if (voicePath) {
-        console.warn(`⚠️ Local audio file not found at: ${voicePath}`);
+        formData.append(
+          "audio",
+          fs.createReadStream(voicePath),
+          path.basename(voicePath)
+        );
       }
 
-      // 2️⃣ Attach local document file (if exists)
-      if (documentPath && fs.existsSync(documentPath)) {
+      // 2️⃣ Attach local document file(s)
+      if (Array.isArray(documentPath)) {
+        for (const docPath of documentPath) {
+          if (!fs.existsSync(docPath)) continue;
+
+          console.log(`- Attaching local file: ${docPath}`);
+          formData.append(
+            "file",
+            fs.createReadStream(docPath),
+            path.basename(docPath)
+          );
+        }
+      } else if (documentPath && fs.existsSync(documentPath)) {
         console.log(`- Attaching local file: ${documentPath}`);
-        const fileContent = fs.readFileSync(documentPath);
-        const fileName = path.basename(documentPath);
-        const blob = new Blob([fileContent]);
-        formData.append("file", blob, fileName);
-      } else if (documentPath) {
-        console.warn(`⚠️ Local document file not found at: ${documentPath}`);
+        formData.append(
+          "file",
+          fs.createReadStream(documentPath),
+          path.basename(documentPath)
+        );
       }
 
-      console.log("📤 Sending POST request to AI Service at:", envVars.AI_SERVICE_URL);
+      const response = await axios.post(
+        envVars.AI_SERVICE_URL,
+        formData,
+        {
+          headers: {
+            ...formData.getHeaders(), // ✅ REQUIRED
+          },
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
+        }
+      );
 
-      const response = await axios.post(envVars.AI_SERVICE_URL, formData);
-
-      console.log("✅ AI Service Response received:", response.data);
+      console.log("✅ AI Service Response received");
       return response.data;
+
     } catch (error) {
-      console.error("❌ AI Service Communication Error:");
-      if (error.response) {
-        console.error("Status:", error.response.status);
-        console.error("Data:", error.response.data);
-      } else {
-        console.error("Message:", error.message);
-      }
+      console.error("❌ AI Service Communication Error:", error.message);
       throw error;
     }
   },
+
+
   // 🛡️ VALIDATE profile completion
   validateProfileCompletion: async (prisma, userId) => {
     const profile = await prisma.userProfile.findUnique({

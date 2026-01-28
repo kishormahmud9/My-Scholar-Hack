@@ -4,72 +4,110 @@ import { normalizeEssayText } from "../../utils/normalizeEssayText.js";
 import { toHtml } from "../../utils/toHtml.js";
 import { ESSAY_STATUS } from "./generateEssay.service.js";
 import { SubscriptionStudentService } from "../subscriptionStudent/subscriptionStudent.service.js";
+import { envVars } from "../../config/env.js";
 
 
 // CREATE + AI GENERATE
+
+import fs from "fs";
+
 
 const createEssay = async (req, res, next) => {
   try {
     const prisma = req.prisma;
     const userId = req.user.id;
-    const { subject, title, prompt } = req.body;
+    const { subject, title, prompt, scholarshipId } = req.body;
 
-    // 1. Process Files (Voice & Documents)
-    let voicePath = null;
-    let documentPaths = [];
+    /* ----------------------------------------------------
+       1. Collect uploaded files safely
+    ---------------------------------------------------- */
+    const voiceFiles = [];
+    const documentFiles = [];
+    const voiceUrls = [];
+    const documentUrls = [];
 
-    if (req.files) {
-      const allFiles = Array.isArray(req.files) ? req.files : Object.values(req.files).flat();
+    if (req.files && typeof req.files === "object") {
+      const allFiles = Object.values(req.files).flat();
 
-      allFiles.forEach((file) => {
+      for (const file of allFiles) {
         const normalizedPath = file.path.replace(/\\/g, "/");
-        if (file.fieldname === "voice" || file.fieldname === "audio") {
-          voicePath = normalizedPath;
-        } else if (["documents", "document", "file", "files"].includes(file.fieldname)) {
-          documentPaths.push(normalizedPath);
+        const fileUrl = `${envVars.SERVER_URL}/uploads/essays/${file.filename}`;
+
+        if (["voice", "audio"].includes(file.fieldname)) {
+          voiceFiles.push(normalizedPath);
+          voiceUrls.push(fileUrl);
         }
-      });
+
+        if (["documents", "document", "file", "files"].includes(file.fieldname)) {
+          documentFiles.push(normalizedPath);
+          documentUrls.push(fileUrl);
+        }
+      }
     }
 
-    // Validation: Ensure at least one input method is provided
-    if (!prompt && !voicePath && documentPaths.length === 0) {
+    const voicePath = voiceFiles[0] || null;
+    const voiceUrl = voiceUrls[0] || null;
+
+    /* ----------------------------------------------------
+       2. Input validation
+    ---------------------------------------------------- */
+    if (!prompt && !voicePath && documentFiles.length === 0) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
-        message: "Input missing. Provide a 'prompt', 'voice' file, or 'documents' file.",
+        message: "Provide a prompt, voice/audio file, or document file.",
       });
     }
 
-    // 2. Pre-generation Validations
+    /* ----------------------------------------------------
+       3. Validate files exist on disk (safety)
+    ---------------------------------------------------- */
+    if (voicePath && !fs.existsSync(voicePath)) {
+      throw new Error("Uploaded voice file not found on server");
+    }
+
+    for (const doc of documentFiles) {
+      if (!fs.existsSync(doc)) {
+        throw new Error("One or more document files are missing on server");
+      }
+    }
+
+    /* ----------------------------------------------------
+       4. Business validations
+    ---------------------------------------------------- */
     const profile = await EssayService.validateProfileCompletion(prisma, userId);
     await SubscriptionStudentService.validateEssayLimit(prisma, userId);
 
-    // 3. Save Initial Prompt (Database Entry)
+    /* ----------------------------------------------------
+       5. Create initial essay record
+    ---------------------------------------------------- */
     const essay = await EssayService.createPrompt(prisma, {
       userId,
       subject,
       title,
       prompt: prompt || "Multi-modal essay generation",
-      voiceUrl: voicePath,
-      documentUrls: documentPaths,
       voiceFilePath: voicePath,
-      documentFilePath: documentPaths,
+      documentFilePath: documentFiles,
+      voiceUrl: voiceUrl,
+      documentUrls: documentUrls,
       userProfileId: profile.id,
-      scholarshipId: req.body.scholarshipId || null,
+      scholarshipId: scholarshipId || null,
+      status: ESSAY_STATUS.GENERATING,
     });
 
+    /* ----------------------------------------------------
+       6. AI generation
+    ---------------------------------------------------- */
     try {
-      // 4. Call AI Service
       const aiResponse = await EssayService.generateEssayByAI(
-        prompt || "Please generate an essay based on the attached files.",
+        prompt || "Generate an essay based on the provided files.",
         voicePath,
-        documentPaths[0] || null // Passing first document for now as per current service capability
+        documentFiles
       );
 
       if (!aiResponse?.essay) {
         throw new Error("AI returned empty essay content");
       }
 
-      // 5. Finalize Essay (Normalize & Update DB)
       const cleanedContent = normalizeEssayText(aiResponse.essay);
 
       const updatedEssay = await EssayService.updateEssay(
@@ -83,8 +121,7 @@ const createEssay = async (req, res, next) => {
         }
       );
 
-      // 6. Success Response
-      res.status(StatusCodes.CREATED).json({
+      return res.status(StatusCodes.CREATED).json({
         success: true,
         message: "Essay generated successfully",
         data: {
@@ -94,22 +131,26 @@ const createEssay = async (req, res, next) => {
       });
 
     } catch (aiError) {
-      console.error("AI Generation Error:", aiError.message);
+      console.error("AI Generation Error:", aiError);
 
       await EssayService.updateEssay(prisma, essay.id, userId, {
         status: ESSAY_STATUS.FAILED,
       });
 
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: "Essay generation failed",
-        error: aiError.message
+        error: aiError.message,
       });
     }
+
   } catch (error) {
     next(error);
   }
 };
+
+export default createEssay;
+
 
 
 
