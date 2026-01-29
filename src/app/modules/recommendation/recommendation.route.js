@@ -3,6 +3,7 @@ import { checkAuthMiddleware } from "../../middleware/checkAuthMiddleware.js";
 import { Role } from "../../utils/role.js";
 import { RecommendationController } from "./recommendation.controller.js";
 
+import { upload } from "../../utils/fileUpload.js";
 const router = express.Router();
 
 router.post(
@@ -42,6 +43,13 @@ router.get(
 router.post(
   "/sync-scholarships",
   RecommendationController.syncScholarships
+);
+
+router.patch(
+  "/scholarships/update/:id",
+  checkAuthMiddleware(Role.ADMIN, Role.OWNER),
+  upload.array("images"),
+  RecommendationController.updateScholarship
 );
 
 export const RecommendationRoutes = router;
