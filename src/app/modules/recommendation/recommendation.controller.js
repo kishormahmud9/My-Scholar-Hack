@@ -1,5 +1,6 @@
 import { StatusCodes } from "http-status-codes"
 import { RecommendationService } from "./recommendation.service.js"
+import { envVars } from "../../config/env.js";
 
 const generateRecommendations = async (req, res, next) => {
   try {
@@ -10,7 +11,7 @@ const generateRecommendations = async (req, res, next) => {
     const aiResponse =
       await RecommendationService.getRecommendationsFromAI(userId)
 
-    const aiResults = aiResponse?.recommendations
+    const aiResults = aiResponse?.data
     console.log('ai results', aiResults)
     if (!Array.isArray(aiResults)) {
       return res.status(StatusCodes.BAD_REQUEST).json({
@@ -43,12 +44,12 @@ const generateRecommendations = async (req, res, next) => {
       const scholarship =
         await RecommendationService.upsertScholarship(prisma, {
           title: item.title ? item.title.replace(/"/g, "") : item.title,
-          type: item.type,
+          type: item.type || "General",
           amount: parsedAmount || 0,
-          provider: item.from ?? "AI_RECOMMENDATION",
+          provider: item.from || item.provider || "AI_RECOMMENDATION",
           deadline: deadlineDate,
           subject: item.subject ?? null,
-          description: item.description ?? null,
+          description: item.description ?? "",
           images: item.images ?? [],
         })
 
@@ -185,6 +186,43 @@ const syncScholarships = async (req, res, next) => {
   }
 };
 
+const updateScholarship = async (req, res, next) => {
+  try {
+    const prisma = req.prisma;
+    const { id } = req.params;
+    let data = req.body;
+
+    // Handle uploaded images
+    if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+      const imageUrls = req.files.map(file => {
+        return `${envVars.SERVER_URL}/uploads/images/${file.filename}`.replace(/([^:]\/)\/+/g, "$1");
+      });
+
+      // If data.images already exists (as a JSON string from form-data), parse it
+      let existingImages = [];
+      if (data.images) {
+        try {
+          existingImages = typeof data.images === 'string' ? JSON.parse(data.images) : data.images;
+        } catch (e) {
+          existingImages = [data.images];
+        }
+      }
+
+      data.images = [...existingImages, ...imageUrls];
+    }
+
+    const result = await RecommendationService.updateScholarship(prisma, id, data);
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Scholarship updated successfully",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 
 export const RecommendationController = {
   generateRecommendations,
@@ -193,5 +231,6 @@ export const RecommendationController = {
   getRecommendationByUserId,
   getScholarships,
   syncScholarships,
+  updateScholarship,
 };
 

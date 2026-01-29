@@ -1,21 +1,18 @@
-
-
-
 import axios from "axios";
 import { envVars } from "../../config/env.js";
 import { QueryBuilder } from "../../utils/QueryBuilder.js";
 import { scholarshipSearchableFields } from "./recommendation.constant.js";
 
-
 export const RecommendationService = {
   // CALL AI RECOMMENDATION API
   getRecommendationsFromAI: async (userId) => {
-    // Robust URL construction to avoid double slashes
+    // AI server expects userId as a path parameter: /api/ai/recommend-scholarships/:userId
     const baseUrl = envVars.AI_RECOMMENDATION_API_URL.replace(/\/$/, "");
     const url = `${baseUrl}/${userId}`.replace(/([^:]\/)\/+/g, "$1");
-    console.log("🚀 Calling AI Recommendation service at:", url);
 
-    // Try GET call with correct Axios parameters
+    console.log("🚀 Calling AI Recommendation service at:", url);
+    console.log("USER ID >", userId);
+
     const response = await axios.get(
       url,
       {
@@ -23,10 +20,13 @@ export const RecommendationService = {
         headers: {
           "Content-Type": "application/json",
         },
-      }
-    )
-
-    return response.data
+      },
+    );
+    console.log(
+      "RESPONSE FROM MY SCHOLAR HACK RECOMMENDATION ->",
+      response.data,
+    );
+    return response.data;
   },
 
   // UPSERT SCHOLARSHIP
@@ -40,22 +40,27 @@ export const RecommendationService = {
       },
       update: scholarship,
       create: scholarship,
-    })
+    });
+  },
+
+  // UPDATE SCHOLARSHIP
+  updateScholarship: async (prisma, id, data) => {
+    return prisma.scholarship.update({
+      where: { id },
+      data,
+    });
   },
 
   // SAVE USER RECOMMENDATIONS
   createMany: async (prisma, recommendations) => {
     return prisma.recommendation.createMany({
       data: recommendations,
-    })
+    });
   },
 
   getAll: async (prisma, query, filter = {}) => {
     const builder = new QueryBuilder(query)
-      .search([
-        "reason",
-        { scholarship: scholarshipSearchableFields },
-      ])
+      .search(["reason", { scholarship: scholarshipSearchableFields }])
       .filter({
         scholarship: ["type", "amount", "provider", "subject"],
       })
@@ -124,9 +129,13 @@ export const RecommendationService = {
       const url = envVars.SCHOLARSHIP_GETTING_API;
       console.log("🚀 Triggering scholarship sync (POST):", url);
 
-      const response = await axios.post(url, {}, {
-        timeout: 60000,
-      });
+      const response = await axios.post(
+        url,
+        {},
+        {
+          timeout: 60000,
+        },
+      );
 
       console.log("✅ Sync trigger response:", response.data);
       return response.data; // { status: "...", count: ... }
@@ -144,8 +153,14 @@ export const RecommendationService = {
 
         // Robust extraction logic
         let foundArray = null;
-        if (typeof data === 'object' && data !== null) {
-          const wrapperKeys = ['data', 'scholarships', 'results', 'result', 'items'];
+        if (typeof data === "object" && data !== null) {
+          const wrapperKeys = [
+            "data",
+            "scholarships",
+            "results",
+            "result",
+            "items",
+          ];
           for (const key of wrapperKeys) {
             if (Array.isArray(data[key])) {
               foundArray = data[key];
@@ -163,8 +178,13 @@ export const RecommendationService = {
         }
 
         if (!foundArray) {
-          console.log("❌ No array found in data:", JSON.stringify(data, null, 2));
-          throw new Error("Could not find scholarship array in the provided data");
+          console.log(
+            "❌ No array found in data:",
+            JSON.stringify(data, null, 2),
+          );
+          throw new Error(
+            "Could not find scholarship array in the provided data",
+          );
         }
         data = foundArray;
       }
@@ -178,10 +198,14 @@ export const RecommendationService = {
         })();
 
         // 💰 Extract amount from title or provided field
-        const amountFromTitle = item.title?.match(/\$([\d,]+)/)?.[1]?.replace(/,/g, "");
+        const amountFromTitle = item.title
+          ?.match(/\$([\d,]+)/)?.[1]
+          ?.replace(/,/g, "");
         const parsedAmount = amountFromTitle
           ? parseInt(amountFromTitle, 10)
-          : (item.amount ? parseInt(String(item.amount).replace(/[^0-9]/g, ""), 10) : 0);
+          : item.amount
+            ? parseInt(String(item.amount).replace(/[^0-9]/g, ""), 10)
+            : 0;
 
         await RecommendationService.upsertScholarship(prisma, {
           title: item.title ? item.title.replace(/"/g, "") : item.title,
