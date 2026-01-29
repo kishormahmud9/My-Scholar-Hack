@@ -1,8 +1,7 @@
 import DevBuildError from "../lib/DevBuildError.js";
 
 const errorHandler = (err, req, res, next) => {
-  console.error("🔥 Error caught by middleware:", err);
-
+  console.error("🔥 Error caught by middleware:", err.message);
   // Custom application errors
   if (err instanceof DevBuildError) {
     return res.status(err.statusCode).json({
