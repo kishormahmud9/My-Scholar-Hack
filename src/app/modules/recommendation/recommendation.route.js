@@ -28,11 +28,20 @@ router.get(
   checkAuthMiddleware(...Object.values(Role)),
   RecommendationController.getScholarships
 );
+router.get(
+  "/scholarships/all/for-ai",
+  RecommendationController.getScholarships
+);
 
 router.get(
   "/user/:userId",
   checkAuthMiddleware(...Object.values(Role)),
   RecommendationController.getRecommendationByUserId
+);
+
+router.post(
+  "/sync-scholarships",
+  RecommendationController.syncScholarships
 );
 
 export const RecommendationRoutes = router;

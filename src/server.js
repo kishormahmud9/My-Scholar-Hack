@@ -5,7 +5,7 @@ import { connectRedis } from "./app/config/redis.config.js";
 import { initSocket } from "./app/socket.js";
 import { startSubscriptionExpiryCron } from "./app/modules/student_notification/subscriptionExpiry.cron.js";
 import { startScholarshipDeadlineCron } from "./app/modules/student_notification/scholarshipDeadline.cron.js";
-
+import { startScholarshipSyncCron } from "./app/modules/recommendation/scholarshipSync.cron.js";
 
 import prisma from "./app/prisma/client.js";
 
@@ -24,6 +24,7 @@ const startServer = async () => {
     // 🔔 Start student subscription cron
     startSubscriptionExpiryCron();
     startScholarshipDeadlineCron();
+    startScholarshipSyncCron();
 
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);

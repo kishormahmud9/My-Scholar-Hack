@@ -22,6 +22,10 @@ router.get(
 
 // all user profile public
 
+router.get("/all", checkAuthMiddleware(...Object.values(Role)),
+  UserController.getAllUsersWithProfile);
+
+
 router.get("/all/get37264", UserController.getAllUsersWithProfile);
 
 router.post(
