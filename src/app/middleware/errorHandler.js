@@ -44,9 +44,10 @@ const errorHandler = (err, req, res, next) => {
 
   // Axios / External API errors
   if (err.response) {
+    const externalError = err.response.data?.error || err.response.data?.message || err.response.data;
     return res.status(err.response.status).json({
       success: false,
-      message: err.response.data?.error || err.response.data?.message || "External Service Error",
+      message: typeof externalError === 'object' ? JSON.stringify(externalError) : externalError || "External Service Error",
     });
   }
 
