@@ -28,6 +28,7 @@ const loadEnvVars = () => {
     "AI_ESSAY_COMPARE_API_URL",
     "AI_RECOMMENDATION_API_URL",
     "SERVER_URL",
+    "SCHOLARSHIP_GETTING_API",
   ];
 
   requiredVars.forEach((key) => {
@@ -79,6 +80,7 @@ const loadEnvVars = () => {
     AI_ESSAY_COMPARE_API_URL: process.env.AI_ESSAY_COMPARE_API_URL,
     AI_RECOMMENDATION_API_URL: process.env.AI_RECOMMENDATION_API_URL,
     SERVER_URL: process.env.SERVER_URL,
+    SCHOLARSHIP_GETTING_API: process.env.SCHOLARSHIP_GETTING_API,
   };
 };
 

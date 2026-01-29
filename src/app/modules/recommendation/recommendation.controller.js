@@ -165,11 +165,33 @@ const getScholarships = async (req, res, next) => {
   }
 };
 
+const syncScholarships = async (req, res, next) => {
+  try {
+    const prisma = req.prisma;
+
+    // 1. Trigger the sync and wait for results
+    const syncResult = await RecommendationService.triggerScholarshipSync();
+
+    // 2. Save the received scholarships directly
+    const saveResult = await RecommendationService.saveScholarships(prisma, syncResult);
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Scholarships synchronized and saved successfully",
+      count: saveResult.count,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 export const RecommendationController = {
   generateRecommendations,
   getUserRecommendations,
   getAllRecommendations,
   getRecommendationByUserId,
   getScholarships,
+  syncScholarships,
 };
 
