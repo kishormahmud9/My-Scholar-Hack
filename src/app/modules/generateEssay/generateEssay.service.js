@@ -210,6 +210,8 @@ export const EssayService = {
         );
       }
 
+      console.log(`🚀 Sending POST request to AI Service: ${envVars.AI_SERVICE_URL}`);
+
       const response = await axios.post(
         envVars.AI_SERVICE_URL,
         formData,
@@ -223,10 +225,17 @@ export const EssayService = {
       );
 
       console.log("✅ AI Service Response received");
+      console.log("Status:", response.status);
+      console.log("Data keys:", response.data ? Object.keys(response.data) : "No data");
+
       return response.data;
 
     } catch (error) {
       console.error("❌ AI Service Communication Error:", error.message);
+      if (error.response) {
+        console.error("Response Status:", error.response.status);
+        console.error("Response Data:", JSON.stringify(error.response.data, null, 2));
+      }
       throw error;
     }
   },
