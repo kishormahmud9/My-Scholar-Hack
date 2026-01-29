@@ -13,6 +13,10 @@ export const EssayComparisonService = {
   // CALL AI COMPARE API
 
   compareEssaysByAI: async (essayA, essayB) => {
+    console.log("🚀 STARTING ESSAY COMPARISON...");
+    console.log("Essay A ID:", essayA?.id || "N/A");
+    console.log("Essay B ID:", essayB?.id || "N/A");
+
     const response = await axios.post(
       envVars.AI_ESSAY_COMPARE_API_URL,
       {
@@ -24,6 +28,11 @@ export const EssayComparisonService = {
         validateStatus: (status) => status < 500, // 👈 allow 4xx to be handled cleanly
       }
     );
+
+    console.log("🚀 AI COMPARE RESPONSE STATUS:", response.status);
+    console.log("🚀 AI COMPARE DATA:", JSON.stringify(response.data, null, 2));
+
+
 
     if (response.status !== 200) {
       throw new Error(`AI compare API failed with status ${response.status}`);

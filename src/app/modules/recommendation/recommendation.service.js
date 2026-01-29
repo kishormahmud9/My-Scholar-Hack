@@ -22,10 +22,13 @@ export const RecommendationService = {
         },
       },
     );
-    console.log(
-      "RESPONSE FROM MY SCHOLAR HACK RECOMMENDATION ->",
-      response.data,
-    );
+    console.log("✅ AI RECOMMENDATION RESPONSE RECEIVED");
+    console.log("Status:", response.status);
+    if (response.data) {
+      console.log("Data Summary:", typeof response.data === 'object' ? Object.keys(response.data) : "Raw Data");
+    }
+    // console.log("Full Data:", JSON.stringify(response.data, null, 2)); // Uncomment for full dump
+
     return response.data;
   },
 
