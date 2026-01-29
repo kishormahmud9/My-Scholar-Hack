@@ -10,6 +10,7 @@ import { envVars } from "../../config/env.js";
 // CREATE + AI GENERATE
 
 import fs from "fs";
+import path from "path";
 
 
 const createEssay = async (req, res, next) => {
@@ -30,16 +31,18 @@ const createEssay = async (req, res, next) => {
       const allFiles = Object.values(req.files).flat();
 
       for (const file of allFiles) {
-        const normalizedPath = file.path.replace(/\\/g, "/");
-        const fileUrl = `${envVars.SERVER_URL}/uploads/essays/${file.filename}`;
+        // Standard relative path for Database (e.g., uploads/essays/file.pdf)
+        const relativePath = `uploads/essays/${file.filename}`;
+
+        const fileUrl = `${envVars.SERVER_URL}/${relativePath}`;
 
         if (["voice", "audio"].includes(file.fieldname)) {
-          voiceFiles.push(normalizedPath);
+          voiceFiles.push(relativePath);
           voiceUrls.push(fileUrl);
         }
 
         if (["documents", "document", "file", "files"].includes(file.fieldname)) {
-          documentFiles.push(normalizedPath);
+          documentFiles.push(relativePath);
           documentUrls.push(fileUrl);
         }
       }
@@ -99,6 +102,7 @@ const createEssay = async (req, res, next) => {
     ---------------------------------------------------- */
     try {
       const aiResponse = await EssayService.generateEssayByAI(
+        userId,
         prompt || "Generate an essay based on the provided files.",
         voicePath,
         documentFiles

@@ -162,43 +162,51 @@ export const EssayService = {
     });
   },
 
-  // AI CALL (Updated Sig: prompt, audioPath, filePath)
-  generateEssayByAI: async (prompt, voicePath = null, documentPath = null) => {
+  // AI CALL (Updated Sig: userId, prompt, audioPath, filePath)
+  generateEssayByAI: async (userId, prompt, voicePath = null, documentPath = null) => {
     try {
       console.log("🚀 Forwarding to AI Service...");
+      console.log("- User ID:", userId);
       console.log("- Prompt length:", prompt?.length || 0);
 
       const formData = new FormData();
+      formData.append("userId", userId);
       formData.append("prompt", prompt || "");
 
       // 1️⃣ Attach local voice file (if exists)
       if (voicePath && fs.existsSync(voicePath)) {
-        console.log(`- Attaching local audio: ${voicePath}`);
+        const absoluteVoicePath = path.resolve(voicePath);
+        console.log(`- Attaching local audio: ${absoluteVoicePath}`);
         formData.append(
           "audio",
-          fs.createReadStream(voicePath),
-          path.basename(voicePath)
+          fs.createReadStream(absoluteVoicePath),
+          path.basename(absoluteVoicePath)
         );
       }
 
       // 2️⃣ Attach local document file(s)
       if (Array.isArray(documentPath)) {
         for (const docPath of documentPath) {
-          if (!fs.existsSync(docPath)) continue;
+          if (!fs.existsSync(docPath)) {
+            console.warn(`- Skipping missing document: ${path.resolve(docPath)}`);
+            continue;
+          }
 
-          console.log(`- Attaching local file: ${docPath}`);
+          const absoluteDocPath = path.resolve(docPath);
+          console.log(`- Attaching local file: ${absoluteDocPath}`);
           formData.append(
             "file",
-            fs.createReadStream(docPath),
-            path.basename(docPath)
+            fs.createReadStream(absoluteDocPath),
+            path.basename(absoluteDocPath)
           );
         }
       } else if (documentPath && fs.existsSync(documentPath)) {
-        console.log(`- Attaching local file: ${documentPath}`);
+        const absoluteDocPath = path.resolve(documentPath);
+        console.log(`- Attaching local file: ${absoluteDocPath}`);
         formData.append(
           "file",
-          fs.createReadStream(documentPath),
-          path.basename(documentPath)
+          fs.createReadStream(absoluteDocPath),
+          path.basename(absoluteDocPath)
         );
       }
 

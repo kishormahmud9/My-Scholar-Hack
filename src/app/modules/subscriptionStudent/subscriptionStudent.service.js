@@ -238,7 +238,7 @@ export const SubscriptionStudentService = {
       return true;
     }
 
-    // 3️⃣ If no active plan, check for Any plans (including Limit Crossed and Inactive)
+    // 3️⃣ If no active plan, check for Any plans (including Limit Crossed and Inactive) that are still "future-dated"
     const anyPlans = await prisma.subscriptionStudent.findMany({
       where: {
         userId,
@@ -255,9 +255,23 @@ export const SubscriptionStudentService = {
       );
     }
 
-    // 4️⃣ No plans found - Mandate Trial Plan
+    // 4️⃣ No future-dated plans found - Apply the 1-free-essay logic
+    const pCount = await prisma.essay.count({
+      where: {
+        userId,
+        isDeleted: false,
+        status: { not: "FAILED" },
+      },
+    });
+
+    if (pCount === 0) {
+      // Allow first essay generation for free
+      return true;
+    }
+
+    // 5️⃣ If 1 or more essays exist and no valid/future plans, block and prompt purchase
     throw new DevBuildError(
-      "Please get a free trial plan first to generate your first essay.",
+      "You have already generated your free essay. Please purchase a plan to generate more.",
       StatusCodes.FORBIDDEN
     );
   },
