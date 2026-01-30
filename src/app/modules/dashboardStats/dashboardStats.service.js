@@ -15,19 +15,42 @@ const getStats = async (prisma, userId) => {
         },
     });
 
+    const threeDaysLater = new Date();
+    threeDaysLater.setDate(threeDaysLater.getDate() + 3);
+
+    const upcomingDeadlineCount = await prisma.application.count({
+        where: {
+            userId,
+            scholarship: {
+                deadline: {
+                    gte: new Date(),
+                    lte: threeDaysLater,
+                },
+            },
+        },
+    });
+
     const upcomingDeadline = await prisma.application.findFirst({
         where: {
             userId,
-            scholarshipDeadline: {
-                gte: new Date(),
+            scholarship: {
+                deadline: {
+                    gte: new Date(),
+                },
             },
         },
         orderBy: {
-            scholarshipDeadline: "asc",
+            scholarship: {
+                deadline: "asc",
+            },
         },
         select: {
-            scholarshipDeadline: true,
             scholarshipTitle: true,
+            scholarship: {
+                select: {
+                    deadline: true,
+                },
+            },
         },
     });
 
@@ -57,6 +80,7 @@ const getStats = async (prisma, userId) => {
         scholarshipAdded,
         totalRecommendations: recommendations.length,
         upcomingDeadline,
+        upcomingDeadlineCount,
         essays,
         recommendations,
     };
