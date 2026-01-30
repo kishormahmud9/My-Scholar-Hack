@@ -210,10 +210,13 @@ export const EssayService = {
         );
       }
 
-      console.log(`🚀 Sending POST request to AI Service: ${envVars.AI_SERVICE_URL}`);
+      const baseUrl = envVars.AI_SERVICE_URL.replace(/\/$/, "");
+      const url = `${baseUrl}/${userId}`;
+
+      console.log(`🚀 Sending POST request to AI Service: ${url}`);
 
       const response = await axios.post(
-        envVars.AI_SERVICE_URL,
+        url,
         formData,
         {
           headers: {
