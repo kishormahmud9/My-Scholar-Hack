@@ -1,18 +1,17 @@
 export const DataScraperService = {
-  // CREATE
   create: async (prisma, data) => {
+    const { name, url } = data;
+
+    if (!name || !url) {
+      return {
+        success: false,
+        status: 400,
+        message: "Name and URL are required",
+        data: null,
+      };
+    }
+
     try {
-      const { name, url } = data;
-
-      if (!name || !url) {
-        return {
-          success: false,
-          status: 400,
-          message: "Name and URL are required",
-          data: null,
-        };
-      }
-
       const scraped = await prisma.scrapedData.create({
         data: {
           name,
@@ -32,6 +31,16 @@ export const DataScraperService = {
         data: scraped,
       };
     } catch (error) {
+      // ✅ HANDLE DUPLICATE URL
+      if (error.code === "P2002") {
+        return {
+          success: false,
+          status: 409,
+          message: "This URL is already stored",
+          data: null,
+        };
+      }
+
       console.error("Create scrape error:", error);
 
       return {
@@ -43,7 +52,6 @@ export const DataScraperService = {
     }
   },
 
-  // GET ALL
   getAll: async (prisma) => {
     try {
       const data = await prisma.scrapedData.findMany({
@@ -62,8 +70,6 @@ export const DataScraperService = {
         data,
       };
     } catch (error) {
-      console.error("Get scrape error:", error);
-
       return {
         success: false,
         status: 400,
