@@ -598,3 +598,39 @@ model UserSettings {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+enum ScrapeStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model ScrapedData {
+  id String @id @default(uuid())
+
+  // Core required fields
+  name        String      
+  url         String        
+  description String?       
+
+  // Optional categorization
+  type String              
+
+  // Raw scraped response
+  payload Json?
+
+  
+  status       ScrapeStatus @default(PENDING)
+  errorMessage String?
+
+  // // Who triggered the scraping (admin/owner)
+  // createdById String?
+  // createdBy   User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([url, type])   
+  @@index([status])
+  @@index([type])
+}

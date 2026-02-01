@@ -27,6 +27,9 @@ import { DashboardStatsRoutes } from "../modules/dashboardStats/dashboardStats.r
 import { SettingsRoutes } from "../modules/admin/settings/settings.route.js";
 import { StudentSettingsRoutes } from "../modules/studentSettings/studentSettings.route.js";
 
+
+import { DataScraperRoutes } from "../modules/admin/data_scraper/dataScraper.route.js";
+
 export const router = Router();
 
 const moduleRoutes = [
@@ -139,6 +142,11 @@ const moduleRoutes = [
   {
     path: "/admin/settings",
     route: SettingsRoutes,
+  },
+
+  {
+    path: "/data-scraper",
+    route: DataScraperRoutes,
   },
 ];
 
