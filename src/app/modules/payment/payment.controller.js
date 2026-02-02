@@ -69,7 +69,7 @@ const verifyPayment = async (req, res, next) => {
 const initiatePurchase = async (req, res, next) => {
   try {
     const { planKey } = req.params;
-    const email = req.user.email;
+    const email = req.body.email;
 
     const checkoutUrl = await paymentService.getCheckoutUrl(planKey, email);
 
