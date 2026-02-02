@@ -90,8 +90,32 @@ const initiatePurchase = async (req, res, next) => {
   }
 };
 
+const initiatePurchasefor_get = async (req, res, next) => {
+  try {
+    const { planKey } = req.params;
+    const email = req.user.email;
+
+    const checkoutUrl = await paymentService.getCheckoutUrl(planKey, email);
+
+    if (!checkoutUrl) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        message: `Plan not found: ${planKey}`,
+      });
+    }
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Checkout URL generated successfully",
+      data: { checkoutUrl },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 export const paymentController = {
   handleSamcartWebhook,
   verifyPayment,
   initiatePurchase,
+  initiatePurchasefor_get,
 };

@@ -13,4 +13,10 @@ router.get(
 );
 router.post("/checkout/:planKey", paymentController.initiatePurchase);
 
+router.get(
+  "/checkout/:planKey",
+  checkAuthMiddleware(Role.STUDENT, Role.ADMIN, Role.OWNER),
+  paymentController.initiatePurchasefor_get,
+);
+
 export const PaymentRoutes = router;
