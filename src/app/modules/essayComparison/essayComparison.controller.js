@@ -41,10 +41,11 @@ const compareEssays = async (req, res, next) => {
     const essayA = essays.find((e) => e.id === essayAId);
     const essayB = essays.find((e) => e.id === essayBId);
 
-    if (essayA.subject !== essayB.subject) {
+    if (essayA.subject.toLowerCase() !== essayB.subject.toLowerCase()) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
-        message: "Subject did not match. Please give same subject essay to compare.",
+        message:
+          "Subject did not match. Please give same subject essay to compare.",
       });
     }
 
@@ -52,7 +53,7 @@ const compareEssays = async (req, res, next) => {
 
     const aiResult = await EssayComparisonService.compareEssaysByAI(
       essayA.contentFinal,
-      essayB.contentFinal
+      essayB.contentFinal,
     );
 
     // SAVE RESULT
