@@ -41,6 +41,13 @@ const compareEssays = async (req, res, next) => {
     const essayA = essays.find((e) => e.id === essayAId);
     const essayB = essays.find((e) => e.id === essayBId);
 
+    if (essayA.subject !== essayB.subject) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: "Subject did not match. Please give same subject essay to compare.",
+      });
+    }
+
     // CALL AI
 
     const aiResult = await EssayComparisonService.compareEssaysByAI(

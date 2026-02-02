@@ -51,13 +51,12 @@ const generateRecommendations = async (req, res, next) => {
           subject: item.subject ?? null,
           description: item.description ?? "",
           images: item.images ?? [],
+          detailUrl: item.detailUrl ?? null,
         })
 
       recommendationData.push({
         userId,
         scholarshipId: scholarship.id,
-        score: item.score ?? 80,
-        reason: item.reason || "Recommended based on your profile matching criteria.",
       })
     }
 
@@ -69,7 +68,11 @@ const generateRecommendations = async (req, res, next) => {
     // FETCH CREATED RECOMMENDATIONS WITH SCHOLARSHIP DATA
     const result = await prisma.recommendation.findMany({
       where: { userId },
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        scholarshipId: true,
+        createdAt: true,
         scholarship: true,
       },
     })

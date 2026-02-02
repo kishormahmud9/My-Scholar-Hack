@@ -29,6 +29,7 @@ export const UserService = {
         role: true,
         isVerified: true,
         status: true,
+        isPlan: true,
         isDeleted: true,
         createdAt: true,
         updatedAt: true,

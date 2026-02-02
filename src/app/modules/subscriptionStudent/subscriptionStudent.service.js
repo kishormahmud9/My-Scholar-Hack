@@ -106,6 +106,37 @@ export const SubscriptionStudentService = {
         }
       }
     }
+
+    // 4️⃣ Final step: Update User isPlan status after all maintenance
+    await SubscriptionStudentService.updateUserIsPlanStatus(prisma, userId);
+  },
+
+  updateUserIsPlanStatus: async (prisma, userId) => {
+    const user = await prisma.user.findUnique({
+      where: { id: userId, isDeleted: false },
+      select: { role: true },
+    });
+
+    // isPlan is only for STUDENT
+    if (!user || user.role !== "STUDENT") {
+      return;
+    }
+
+    const now = new Date();
+    // A student has a plan if they have any SubscriptionStudent record that is not END/CANCELLED and deadline NOT over.
+    // The requirement says: "if plan true and deadline not over this time it will true,, when student have plan but it limit cross it not effect in isPlan"
+    const hasValidPlan = await prisma.subscriptionStudent.findFirst({
+      where: {
+        userId,
+        subscriptionStatus: { in: ["ACTIVE", "TRAIL", "LIMIT_CROSSED", "INACTIVE"] },
+        endDate: { gt: now },
+      },
+    });
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { isPlan: !!hasValidPlan },
+    });
   },
 
   getMySubscription: async (prisma, userId) => {
@@ -142,16 +173,17 @@ export const SubscriptionStudentService = {
       endDate.setMonth(endDate.getMonth() + 1);
     }
 
-    // 1.1️⃣ Determine initial status (only one ACTIVE/LIMIT_CROSSED at a time)
-    const existingActive = await prisma.subscriptionStudent.findFirst({
+    // 1.1️⃣ If a new plan is bought, any existing ACTIVE, TRAIL, or LIMIT_CROSSED plan should be marked INACTIVE
+    await prisma.subscriptionStudent.updateMany({
       where: {
         userId,
-        subscriptionStatus: { in: ["ACTIVE", "LIMIT_CROSSED"] },
+        subscriptionStatus: { in: ["ACTIVE", "TRAIL", "LIMIT_CROSSED"] },
         endDate: { gt: now },
       },
+      data: { subscriptionStatus: "INACTIVE" },
     });
 
-    const status = existingActive ? "INACTIVE" : "ACTIVE";
+    const status = "ACTIVE";
 
     // 1️⃣ Always create a new Subscription record for every purchase
     const subscription = await prisma.subscription.create({
