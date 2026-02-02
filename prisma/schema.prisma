@@ -71,6 +71,7 @@ model User {
   status               UserStatus @default(ACTIVE)
   isVerified           Boolean    @default(false)
   isDeleted            Boolean    @default(false)
+  isPlan               Boolean?   @default(false)
   forgotPasswordStatus Boolean    @default(false)
 
   auths    AuthProvider[]
@@ -374,6 +375,7 @@ model Scholarship {
   subject     String?
   description String?
   images      String[]
+  detailUrl   String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -391,8 +393,8 @@ model Recommendation {
   userId        String
   scholarshipId String
 
-  score  Int
-  reason String
+  score  Int?
+  reason String?
 
   createdAt DateTime @default(now())
 

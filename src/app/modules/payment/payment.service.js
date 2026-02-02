@@ -137,16 +137,17 @@ const processSamcartEvent = async (payload) => {
     }
 
     // 3️⃣ Create SubscriptionStudent record for the queueing system
-    // Determine if it should be ACTIVE or INACTIVE
-    const existingActive = await prisma.subscriptionStudent.findFirst({
+    // 1.1️⃣ If a new plan is bought, any existing ACTIVE, TRAIL, or LIMIT_CROSSED plan should be marked INACTIVE
+    await prisma.subscriptionStudent.updateMany({
       where: {
         userId: user.id,
         subscriptionStatus: { in: ["ACTIVE", "TRAIL", "LIMIT_CROSSED"] },
         endDate: { gt: now },
       },
+      data: { subscriptionStatus: "INACTIVE" },
     });
 
-    const studentStatus = existingActive ? "INACTIVE" : (status === "trial" ? "TRAIL" : "ACTIVE");
+    const studentStatus = status === "trial" ? "TRAIL" : "ACTIVE";
 
     await prisma.subscriptionStudent.create({
       data: {
@@ -163,7 +164,7 @@ const processSamcartEvent = async (payload) => {
 
     console.log(`✨ SubscriptionStudent created for user ${user.id} with status ${studentStatus}`);
 
-    // 4️⃣ Run maintenance to ensure the correct plan is active
+    // 4️⃣ Run maintenance to ensure the correct plan is active and update isPlan status
     await SubscriptionStudentService.maintainSubscriptions(prisma, user.id);
 
     return;

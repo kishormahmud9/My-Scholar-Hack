@@ -6,7 +6,9 @@ import { scholarshipSearchableFields } from "./recommendation.constant.js";
 export const RecommendationService = {
   // CALL AI RECOMMENDATION API
   getRecommendationsFromAI: async (userId) => {
-    // AI server expects userId as a path parameter: /api/ai/recommend-scholarships/:userId
+
+    console.log("Fetching AI recommendations for user ID: 🔥", userId);
+    // AI server expects userId as a path parameter: /api/recommend-scholarships/:userId
     const baseUrl = envVars.AI_RECOMMENDATION_API_URL.replace(/\/$/, "");
     const url = `${baseUrl}/${userId}`.replace(/([^:]\/)\/+/g, "$1");
 
@@ -16,7 +18,7 @@ export const RecommendationService = {
     const response = await axios.get(
       url,
       {
-        timeout: 60000,
+        timeout: 300000,
         headers: {
           "Content-Type": "application/json",
         },
@@ -84,7 +86,11 @@ export const RecommendationService = {
     if (prismaQuery.select) {
       prismaQuery.select.scholarship = true;
     } else {
-      prismaQuery.include = {
+      prismaQuery.select = {
+        id: true,
+        userId: true,
+        scholarshipId: true,
+        createdAt: true,
         scholarship: true,
       };
     }
@@ -136,7 +142,7 @@ export const RecommendationService = {
         url,
         {},
         {
-          timeout: 60000,
+          timeout: 300000,
         },
       );
 
@@ -219,6 +225,7 @@ export const RecommendationService = {
           subject: item.subject ?? null,
           description: item.description ?? null,
           images: item.images ?? [],
+          detailUrl: item.detailUrl ?? null,
         });
       }
 
