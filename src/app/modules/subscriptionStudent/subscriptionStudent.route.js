@@ -8,42 +8,39 @@ import { Role } from "../../utils/role.js";
 const router = express.Router();
 
 // 🔐 All routes require authentication
-router.use(checkAuthMiddleware(...Object.values(Role)));
+// router.use(checkAuthMiddleware(...Object.values(Role)));
 
 // Get All Subscription
-router.get(
-  "/all-plan",
-  SubscriptionStudentController.getAllPlans
-);
+router.get("/all-plan", SubscriptionStudentController.getAllPlans);
 // Get current user's subscriptions
 router.get(
   "/me",
-  SubscriptionStudentController.getMySubscription
+  checkAuthMiddleware(...Object.values(Role)),
+  SubscriptionStudentController.getMySubscription,
 );
 
 // Get single subscription
-router.get(
-  "/:id",
-  SubscriptionStudentController.getSubscriptionById
-);
+router.get("/:id", SubscriptionStudentController.getSubscriptionById);
 
 // Purchase or upgrade subscription (ADMIN ONLY)
 router.post(
   "/purchase",
   checkAuthMiddleware(Role.ADMIN, Role.OWNER),
-  SubscriptionStudentController.purchaseSubscription
+  SubscriptionStudentController.purchaseSubscription,
 );
 
 // Toggle plan status (ACTIVE/INACTIVE)
 router.patch(
   "/toggle-status/:id",
-  SubscriptionStudentController.toggleSubscriptionStatus
+  checkAuthMiddleware(...Object.values(Role)),
+  SubscriptionStudentController.toggleSubscriptionStatus,
 );
 
 // Cancel subscription
 router.patch(
   "/cancel/:id",
-  SubscriptionStudentController.cancelSubscription
+  checkAuthMiddleware(...Object.values(Role)),
+  SubscriptionStudentController.cancelSubscription,
 );
 
 export const SubscriptionStudentRouter = router;
