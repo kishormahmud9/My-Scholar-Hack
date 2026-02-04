@@ -44,6 +44,7 @@ async function main() {
             role: UserRole.STUDENT,
             status: "ACTIVE",
             isVerified: true,
+            isPlan: true,
             auths: {
               create: { provider: AuthProviderType.EMAIL },
             },
@@ -55,8 +56,8 @@ async function main() {
             settings: { create: {} },
           },
         });
-      }
-    )
+      },
+    ),
   );
 
   // ---------------------------
@@ -95,33 +96,36 @@ async function main() {
   // SUBSCRIPTIONS (1 plan per student)
   // ---------------------------
   for (let i = 0; i < 3; i++) {
-  // 1️⃣ Create subscription
-  const subscription = await prisma.subscription.create({
-    data: {
-      userId: students[i].id,
-      planId: plans[i].id,
-      status: "active",
-      expiresAt: new Date(
-        new Date().setMonth(new Date().getMonth() + 1)
-      ),
-    },
-  });
+    // 1️⃣ Create subscription
+    const subscription = await prisma.subscription.create({
+      data: {
+        userId: students[i].id,
+        planId: plans[i].id,
+        status: "active",
+        expiresAt: new Date(new Date().setMonth(new Date().getMonth() + 1)),
+      },
+    });
 
-  // 2️⃣ Attach student to subscription
-  await prisma.subscriptionStudent.create({
-    data: {
-      userId: students[i].id,
-      subscriptionId: subscription.id,
-      endDate: subscription.expiresAt,
-    },
-  });
-}
-
+    // 2️⃣ Attach student to subscription
+    await prisma.subscriptionStudent.create({
+      data: {
+        userId: students[i].id,
+        subscriptionId: subscription.id,
+        endDate: subscription.expiresAt,
+      },
+    });
+  }
 
   console.log("✅ Seed completed");
   console.log("👮 Admin:", admin.email);
-  console.log("🎓 Students:", students.map(s => s.email));
-  console.log("📦 Plans:", plans.map(p => p.name));
+  console.log(
+    "🎓 Students:",
+    students.map((s) => s.email),
+  );
+  console.log(
+    "📦 Plans:",
+    plans.map((p) => p.name),
+  );
 }
 
 main()
@@ -132,22 +136,6 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // import { PrismaClient, UserRole, AuthProviderType } from "@prisma/client";
 // import bcrypt from "bcrypt";
