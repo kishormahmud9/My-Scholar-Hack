@@ -112,7 +112,7 @@ async function main() {
     data: {
       userId: students[i].id,
       subscriptionId: subscription.id,
-      endDate: subscription.expiresAt!,
+      endDate: subscription.expiresAt,
     },
   });
 }
