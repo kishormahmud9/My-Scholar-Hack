@@ -251,7 +251,6 @@ export const EssayService = {
       include: {
         basicInformation: true,
         academicInterest: true,
-        education: true,
         extraCurricularsActivity: true,
         volunteerWork: true,
         familyBackground: true,
@@ -271,7 +270,6 @@ export const EssayService = {
     const sections = [
       { name: "Basic Information", data: profile.basicInformation },
       { name: "Academic Interest", data: profile.academicInterest },
-      { name: "Education", data: profile.education },
       { name: "Extra Curriculars Activity", data: profile.extraCurricularsActivity },
       { name: "Volunteer Work", data: profile.volunteerWork },
       { name: "Family Background", data: profile.familyBackground },
