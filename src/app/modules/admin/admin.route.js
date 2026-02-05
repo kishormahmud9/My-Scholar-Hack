@@ -135,11 +135,22 @@ router.delete(
 
 router.get(
   "/faqs",
+  checkAuthMiddleware(Role.ADMIN, Role.OWNER),
   AdminController.getAllFaqs
 );
 
 router.get(
   "/faqs/by-category",
+  checkAuthMiddleware(Role.ADMIN, Role.OWNER),
+  AdminController.getFaqsByCategory
+);
+router.get(
+  "/faqs/public",
+  AdminController.getAllFaqs
+);
+
+router.get(
+  "/faqs/by-category/public",
   AdminController.getFaqsByCategory
 );
 
