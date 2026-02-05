@@ -29,6 +29,7 @@ import { StudentSettingsRoutes } from "../modules/studentSettings/studentSetting
 
 
 import { DataScraperRoutes } from "../modules/admin/data_scraper/dataScraper.route.js";
+import { StudentReviewRoutes } from "../modules/studentReview/studentReview.route.js";
 
 export const router = Router();
 
@@ -120,6 +121,10 @@ const moduleRoutes = [
   {
     path: "/student-settings",
     route: StudentSettingsRoutes,
+  },
+  {
+    path : "/student-review",
+    route : StudentReviewRoutes
   },
 
   // --------------

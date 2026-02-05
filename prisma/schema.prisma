@@ -89,7 +89,7 @@ model User {
   essayComparisons       EssayComparison[]
   notificationRecipients NotificationRecipient[]
   studentSettings        StudentSettings?
-
+studentReviews         studentReview[]
   @@index([role])
   @@index([status])
 }
@@ -444,6 +444,19 @@ model SubscriptionStudent {
   // @@unique([userId]) // Removed to allow multiple plans per user
 }
 
+
+model studentReview {
+  id String @id @default(uuid())
+
+  userId String
+  user   User @relation(fields: [userId], references: [id])
+
+  rating  String?
+  reviewText String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 // ---------------
 
 model Plan {
