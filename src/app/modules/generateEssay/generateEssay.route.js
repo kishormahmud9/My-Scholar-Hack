@@ -6,16 +6,12 @@ import { upload } from "../../utils/fileUpload.js";
 
 const router = express.Router();
 
-router.get(
-  "/",
-  checkAuthMiddleware(Role.STUDENT),
-  EssayController.getEssays
-);
+router.get("/", checkAuthMiddleware(Role.STUDENT), EssayController.getEssays);
 
 router.get(
   "/:id",
   checkAuthMiddleware(Role.STUDENT),
-  EssayController.getEssayById
+  EssayController.getEssayById,
 );
 
 router.post(
@@ -25,24 +21,23 @@ router.post(
     { name: "voice", maxCount: 1 },
     { name: "audio", maxCount: 1 },
     { name: "documents", maxCount: 5 },
-      { name: "document", maxCount: 5 }, 
+    { name: "document", maxCount: 5 },
     { name: "file", maxCount: 5 },
   ]),
-  EssayController.createEssay
+  EssayController.createEssay,
 );
-
 
 // EDIT essay anytime
 router.patch(
   "/update/:id",
   checkAuthMiddleware(Role.STUDENT),
-  EssayController.updateEssayContent
+  EssayController.updateEssayContent,
 );
 
 router.patch(
   "/delete/:id",
   checkAuthMiddleware(Role.STUDENT),
-  EssayController.deleteEssay
+  EssayController.deleteEssay,
 );
 
 export const GenerateEssayRoutes = router;

@@ -9,8 +9,8 @@ import { generateInvoicePDF } from "../../utils/template/invoice.mjs";
 
 const PRODUCT_PLAN_MAP = {
   "HackScholarAgent:  Essay Hack": "essay_hack",
-  "ScholarHackAgent: Essay Hack+": "essay_hack_plus",
-  "HackScholarAgent: Essay Hack Pro": "essay_hack_pro",
+  "HackScholarAgent: Essay Hack+": "essay_hack_plus",
+  "HackScholarAgent: Hack Pro": "hack_pro",
 };
 
 const TRIAL_DAYS = 7;
@@ -23,7 +23,7 @@ const processSamcartEvent = async (payload) => {
   if (!type || !product?.name || !customer?.email || !order?.id) {
     throw new DevBuildError(
       "Invalid SamCart payload: missing required fields",
-      StatusCodes.BAD_REQUEST
+      StatusCodes.BAD_REQUEST,
     );
   }
 
@@ -35,9 +35,14 @@ const processSamcartEvent = async (payload) => {
   for (const [key, value] of Object.entries(PRODUCT_PLAN_MAP)) {
     // Normalize spaces and case for matching
     const normalizedKey = key.replace(/\s+/g, " ").toLowerCase();
-    const normalizedProductName = productName.replace(/\s+/g, " ").toLowerCase();
+    const normalizedProductName = productName
+      .replace(/\s+/g, " ")
+      .toLowerCase();
 
-    if (normalizedKey === normalizedProductName || normalizedProductName.includes(value.replace(/_/g, " "))) {
+    if (
+      normalizedKey === normalizedProductName ||
+      normalizedProductName.includes(value.replace(/_/g, " "))
+    ) {
       planKey = value;
       break;
     }
@@ -47,7 +52,7 @@ const processSamcartEvent = async (payload) => {
     console.error(`❌ Unknown product: "${productName}"`);
     throw new DevBuildError(
       `Unknown product: ${productName}`,
-      StatusCodes.BAD_REQUEST
+      StatusCodes.BAD_REQUEST,
     );
   }
 
@@ -59,7 +64,7 @@ const processSamcartEvent = async (payload) => {
     console.error(`❌ User not found for email: ${email}`);
     throw new DevBuildError(
       "User not found for this email",
-      StatusCodes.NOT_FOUND
+      StatusCodes.NOT_FOUND,
     );
   }
 
@@ -71,7 +76,7 @@ const processSamcartEvent = async (payload) => {
     console.error(`❌ Plan not found in DB: ${planKey}`);
     throw new DevBuildError(
       `Plan not found in DB: ${planKey}`,
-      StatusCodes.NOT_FOUND
+      StatusCodes.NOT_FOUND,
     );
   }
 
@@ -79,7 +84,9 @@ const processSamcartEvent = async (payload) => {
 
   // ✅ Successful Order
   if (type === "Order") {
-    console.log(`✅ Processing successful order for user ${user.id}, plan ${planKey}`);
+    console.log(
+      `✅ Processing successful order for user ${user.id}, plan ${planKey}`,
+    );
     let status = "active";
     let expiresAt = addDays(now, 30); // Default to 30 days
 
@@ -122,7 +129,9 @@ const processSamcartEvent = async (payload) => {
     try {
       const invoiceData = {
         orderId: order.id,
-        customerName: `${customer.first_name || ""} ${customer.last_name || ""}`.trim() || email,
+        customerName:
+          `${customer.first_name || ""} ${customer.last_name || ""}`.trim() ||
+          email,
         customerEmail: email,
         productName: productName,
         amount: product.price || 0,
@@ -162,7 +171,9 @@ const processSamcartEvent = async (payload) => {
       },
     });
 
-    console.log(`✨ SubscriptionStudent created for user ${user.id} with status ${studentStatus}`);
+    console.log(
+      `✨ SubscriptionStudent created for user ${user.id} with status ${studentStatus}`,
+    );
 
     // 4️⃣ Run maintenance to ensure the correct plan is active and update isPlan status
     await SubscriptionStudentService.maintainSubscriptions(prisma, user.id);
@@ -179,7 +190,7 @@ const processSamcartEvent = async (payload) => {
         userId: user.id,
         status: { in: ["active", "trial", "past_due"] },
       },
-      orderBy: { createdAt: "desc" }
+      orderBy: { createdAt: "desc" },
     });
 
     if (!existingSub) return;
@@ -199,7 +210,7 @@ const processSamcartEvent = async (payload) => {
         userId: user.id,
         status: { in: ["active", "trial"] },
       },
-      orderBy: { createdAt: "desc" }
+      orderBy: { createdAt: "desc" },
     });
 
     if (!existingSub) return;
@@ -245,7 +256,7 @@ export const paymentService = {
 
     // Reconstruct URL: mainUrl + ?email=... + #fragment
     const finalUrl = `${mainUrl}${separator}email=${encodeURIComponent(
-      email
+      email,
     )}${fragment ? "#" + fragment : ""}`;
 
     return finalUrl;
