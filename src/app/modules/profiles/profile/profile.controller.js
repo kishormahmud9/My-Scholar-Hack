@@ -1,70 +1,9 @@
 import fs from "fs";
 import path from "path";
 import { ProfileService } from "./profile.service.js";
+import { UserService } from "../../user/user.service.js";
 
-
-
-// const upsertUserProfile = async (req, res) => {
-//   try {
-//     const prisma = req.prisma;
-//     const userId = req.user?.id || req.body.userId;
-
-//     if (!userId) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "userId required",
-//       });
-//     }
-
-//     const { userId: _, ...data } = req.body;
-//     const user = req.user;
-
-//     // 📸 handle uploaded file
-//     if (req.file) {
-//       data.profilePicture = req.file.filename;
-//       data.filePath = req.file.path;
-//     }
-
-//     const oldProfile = await prisma.userProfile.findUnique({
-//       where: { userId },
-//     });
-
-//     // 👤 required fullName only on first create
-//     if (!data.fullName && !oldProfile) {
-//       data.fullName = user.name || "User";
-//     }
-
-//     // 🧹 remove undefined fields
-//     Object.keys(data).forEach((key) => {
-//       if (data[key] === undefined) delete data[key];
-//     });
-
-//     const profile = await ProfileService.upsertByUserId(
-//       prisma,
-//       userId,
-//       data
-//     );
-
-//     // 🗑️ delete old file AFTER successful upsert
-//     if (oldProfile?.filePath && req.file) {
-//       fs.unlink(oldProfile.filePath, () => {});
-//     }
-
-//     res.json({
-//       success: true,
-//       message: "User profile saved successfully",
-//       data: profile,
-//     });
-//   } catch (error) {
-//     console.error("upsertUserProfile error:", error);
-//     res.status(500).json({
-//       success: false,
-//       message: "Failed to save user profile",
-//     });
-//   }
-// };
-
-const upsertUserProfile = async (req, res) => {
+const upsertUserProfile = async (req, res, next) => {
   try {
     const prisma = req.prisma;
     const userId = req.user?.id || req.body.userId;
@@ -109,12 +48,22 @@ const upsertUserProfile = async (req, res) => {
       data.gpa = parseFloat(data.gpa);
     }
 
-    // 💾 UPSERT
+    // 💾 UPSERT Profile
     const profile = await ProfileService.upsertByUserId(
       prisma,
       userId,
       data
     );
+
+    // 🔄 Sync to User and StudentSettings if fullName, profilePicture, filePath or profileUrl changed
+    if (data.fullName || data.profilePicture || data.filePath || data.profileUrl) {
+      await UserService.update(prisma, userId, {
+        name: data.fullName,
+        picture: data.profilePicture,
+        filePath: data.filePath,
+        profileUrl: data.profileUrl,
+      });
+    }
 
     // 🗑️ Delete old file AFTER successful DB save
     if (oldProfile?.filePath && req.file) {

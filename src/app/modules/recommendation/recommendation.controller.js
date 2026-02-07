@@ -20,11 +20,6 @@ const generateRecommendations = async (req, res, next) => {
       })
     }
 
-    // CLEAR OLD RECOMMENDATIONS
-    await prisma.recommendation.deleteMany({
-      where: { userId },
-    })
-
     const recommendationData = []
 
     // UPSERT SCHOLARSHIPS + PREPARE RECOMMENDATIONS
@@ -65,9 +60,15 @@ const generateRecommendations = async (req, res, next) => {
       await RecommendationService.createMany(prisma, recommendationData)
     }
 
-    // FETCH CREATED RECOMMENDATIONS WITH SCHOLARSHIP DATA
+    // FETCH CREATED RECOMMENDATIONS WITH SCHOLARSHIP DATA (Only the ones just created)
+    const scholarshipIds = recommendationData.map(r => r.scholarshipId);
     const result = await prisma.recommendation.findMany({
-      where: { userId },
+      where: {
+        userId,
+        scholarshipId: { in: scholarshipIds }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: recommendationData.length,
       select: {
         id: true,
         userId: true,

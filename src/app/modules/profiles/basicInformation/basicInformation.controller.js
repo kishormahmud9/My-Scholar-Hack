@@ -1,5 +1,6 @@
 import { StatusCodes } from "http-status-codes";
 import { BasicInformationService } from "./basicInformation.service.js";
+import { UserService } from "../../user/user.service.js";
 
 const getBasicInformation = async (req, res, next) => {
   try {
@@ -59,6 +60,15 @@ const saveBasicInformation = async (req, res, next) => {
         profile.id,
         data
       );
+
+    // 🔄 Sync fullName, filePath, and profileUrl to User, UserProfile, and StudentSettings
+    if (data.fullName || data.filePath || data.profileUrl) {
+      await UserService.update(prisma, userId, {
+        name: data.fullName,
+        filePath: data.filePath,
+        profileUrl: data.profileUrl,
+      });
+    }
 
     res.status(StatusCodes.OK).json({
       success: true,
