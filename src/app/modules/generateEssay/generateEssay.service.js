@@ -37,11 +37,14 @@ export const EssayService = {
 
     const prismaQuery = builder.build();
 
-    // 🔥 ALWAYS exclude deleted essays
+    // 🔥 ALWAYS exclude deleted essays AND filter by status
     prismaQuery.where = {
       ...(prismaQuery.where || {}),
       userId,
       isDeleted: false,
+      status: {
+        in: [ESSAY_STATUS.SAVED, ESSAY_STATUS.EDITED]
+      }
     };
 
     // Handle select/include conflict
@@ -113,6 +116,36 @@ export const EssayService = {
     });
   },
 
+  // SAVE essay (Change status from GENERATING to SAVED)
+  saveEssay: async (prisma, id, userId) => {
+    const essay = await prisma.essay.findFirst({
+      where: {
+        id,
+        userId,
+        isDeleted: false,
+      },
+    });
+
+    if (!essay) {
+      const error = new Error("Essay not found or not authorized");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (essay.status !== ESSAY_STATUS.GENERATING) {
+      const error = new Error(`Essay is already in ${essay.status} status`);
+      error.statusCode = 400;
+      throw error;
+    }
+
+    return prisma.essay.update({
+      where: { id },
+      data: {
+        status: ESSAY_STATUS.SAVED,
+      },
+    });
+  },
+
   // UPDATE essay content (USER EDIT)
   updateEssayContent: async (prisma, id, userId, contentFinal) => {
     const result = await prisma.essay.updateMany({
@@ -138,7 +171,7 @@ export const EssayService = {
     return result;
   },
 
-  // SOFT DELETE essay
+  // SOFT DELETE or HARD DELETE essay
   delete: async (prisma, id, userId) => {
     const essay = await prisma.essay.findFirst({
       where: {
@@ -154,6 +187,14 @@ export const EssayService = {
       throw error;
     }
 
+    // If status is GENERATING, do a HARD delete
+    if (essay.status === ESSAY_STATUS.GENERATING) {
+      return prisma.essay.delete({
+        where: { id },
+      });
+    }
+
+    // Otherwise, do a SOFT delete
     return prisma.essay.update({
       where: { id },
       data: {

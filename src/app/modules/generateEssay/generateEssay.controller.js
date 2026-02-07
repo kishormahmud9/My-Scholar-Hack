@@ -121,13 +121,13 @@ const createEssay = async (req, res, next) => {
         {
           contentFinal: cleanedContent,
           wordCount: cleanedContent.trim().split(/\s+/).length,
-          status: ESSAY_STATUS.SAVED,
+          status: ESSAY_STATUS.GENERATING, // Keep it generating until saved
         }
       );
 
       return res.status(StatusCodes.CREATED).json({
         success: true,
-        message: "Essay generated successfully",
+        message: "Essay generated successfully. Please save it to keep it in your collection.",
         data: {
           ...updatedEssay,
           contentFinal: toHtml(updatedEssay.contentFinal),
@@ -268,10 +268,31 @@ const deleteEssay = async (req, res, next) => {
   }
 };
 
+
+// SAVE essay
+const saveEssay = async (req, res, next) => {
+  try {
+    const prisma = req.prisma;
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    const result = await EssayService.saveEssay(prisma, id, userId);
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Essay saved successfully",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const EssayController = {
   getEssays,
   getEssayById,
   createEssay,
   updateEssayContent,
   deleteEssay,
+  saveEssay,
 };
