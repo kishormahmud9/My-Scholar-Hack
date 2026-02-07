@@ -52,9 +52,26 @@ const getUserInfo = async (req, res, next) => {
       throw new DevBuildError("User not found", 404);
     }
 
+    // Flattening the response for the frontend
+    const responseData = {
+      id: user.id,
+      email: user.email,
+      fullName: user.profile?.fullName || user.studentSettings?.fullName || user.name,
+      profilePicture: user.profile?.profilePicture || user.picture,
+      filePath: user.profile?.filePath,
+      profileUrl: user.profile?.profileUrl,
+      phone: user.phoneNumber,
+      isPlan: user.isPlan,
+      role: user.role,
+      status: user.status,
+      isVerified: user.isVerified,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+
     res.json({
       success: true,
-      data: user,
+      data: responseData,
     });
   } catch (error) {
     next(error);
@@ -109,15 +126,13 @@ const updateUser = async (req, res) => {
     const prisma = req.prisma;
 
     const { userId, ...data } = req.body;
+    const id = userId || req.user?.id;
 
-    if (!userId) {
+    if (!id) {
       return res.status(400).json({ message: "userId required" });
     }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data,
-    });
+    const updatedUser = await UserService.update(prisma, id, data);
 
     return res.json({
       success: true,

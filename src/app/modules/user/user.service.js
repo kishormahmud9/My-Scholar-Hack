@@ -26,6 +26,7 @@ export const UserService = {
         email: true,
         name: true,
         picture: true,
+        phoneNumber: true,
         role: true,
         isVerified: true,
         status: true,
@@ -33,17 +34,78 @@ export const UserService = {
         isDeleted: true,
         createdAt: true,
         updatedAt: true,
+        profile: {
+          select: {
+            fullName: true,
+            profilePicture: true,
+            filePath: true,
+            profileUrl: true,
+          }
+        },
+        studentSettings: {
+          select: {
+            fullName: true,
+          }
+        }
       },
     }),
 
 
   // UPDATE / DELETE
 
-  update: async (prisma, id, data) =>
-    prisma.user.update({
+  update: async (prisma, id, data) => {
+    // Synchronization logic for name/fullName and picture/profilePicture
+    const updateData = { ...data };
+    const name = data.name || data.fullName;
+    const picture = data.picture || data.profilePicture || data.userPicture;
+    const filePath = data.filePath;
+    const profileUrl = data.profileUrl;
+
+    if (name) {
+      updateData.name = name;
+    }
+    if (picture) {
+      updateData.picture = picture;
+    }
+
+    // Perform the update on User
+    const updatedUser = await prisma.user.update({
       where: { id },
-      data,
-    }),
+      data: updateData,
+    });
+
+    // Sync to UserProfile
+    if (name || picture || filePath || profileUrl) {
+      const profileData = {};
+      if (name) profileData.fullName = name;
+      if (picture) profileData.profilePicture = picture;
+      if (filePath) profileData.filePath = filePath;
+      if (profileUrl) profileData.profileUrl = profileUrl;
+
+      await prisma.userProfile.upsert({
+        where: { userId: id },
+        update: profileData,
+        create: {
+          userId: id,
+          ...profileData,
+        },
+      });
+    }
+
+    // Sync to StudentSettings
+    if (name) {
+      await prisma.studentSettings.upsert({
+        where: { userId: id },
+        update: { fullName: name },
+        create: {
+          userId: id,
+          fullName: name,
+        },
+      });
+    }
+
+    return updatedUser;
+  },
 
   delete: async (prisma, id) =>
     prisma.user.delete({

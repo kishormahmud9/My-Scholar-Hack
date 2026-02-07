@@ -1,4 +1,5 @@
 import { StudentSettingsService } from "./studentSettings.service.js";
+import { UserService } from "../user/user.service.js";
 import { StatusCodes } from "http-status-codes";
 import { sendResponse } from "../../utils/sendResponse.js";
 
@@ -13,6 +14,15 @@ const upsertStudentSettings = async (req, res, next) => {
             userId,
             data
         );
+
+        // 🔄 Sync fullName, filePath, and profileUrl to User and UserProfile
+        if (data.fullName || data.filePath || data.profileUrl) {
+            await UserService.update(prisma, userId, {
+                name: data.fullName,
+                filePath: data.filePath,
+                profileUrl: data.profileUrl,
+            });
+        }
 
         sendResponse(res, {
             success: true,

@@ -114,6 +114,7 @@ model UserProfile {
   fullName       String?
   profilePicture String?
   filePath       String?
+  profileUrl     String?
   bio            String?
   state          String?
   gpa            Float?
