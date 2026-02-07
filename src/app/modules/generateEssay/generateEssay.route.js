@@ -34,6 +34,13 @@ router.patch(
   EssayController.updateEssayContent,
 );
 
+// SAVE essay
+router.patch(
+  "/save/:id",
+  checkAuthMiddleware(Role.STUDENT),
+  EssayController.saveEssay,
+);
+
 router.patch(
   "/delete/:id",
   checkAuthMiddleware(Role.STUDENT),
