@@ -5,24 +5,23 @@ import { envVars } from "../../config/env.js";
 import { QueryBuilder } from "../../utils/QueryBuilder.js";
 import {
   essaySearchableFields,
+  ESSAY_STATUS,
 } from "./generateEssay.constant.js";
 
 import FormData from "form-data";
 
-// src/constants/essayStatus.js
-export const ESSAY_STATUS = {
-  GENERATING: "GENERATING",
-  SAVED: "SAVED",
-  FAILED: "FAILED",
-  EDITED: "EDITED",
-};
 
 
 export const EssayService = {
 
   // GET all essays by user
   getByUserId: async (prisma, userId, query) => {
-    const builder = new QueryBuilder(query)
+    // 🛡️ Remove potential polluting fields from query
+    const cleanQuery = { ...query };
+    const systemFields = ["userId", "isDeleted", "status"];
+    systemFields.forEach(f => delete cleanQuery[f]);
+
+    const builder = new QueryBuilder(cleanQuery)
       .search([
         ...essaySearchableFields
       ])
@@ -37,7 +36,7 @@ export const EssayService = {
 
     const prismaQuery = builder.build();
 
-    // 🔥 ALWAYS exclude deleted essays AND filter by status
+    // 🔥 ALWAYS force these core filters
     prismaQuery.where = {
       ...(prismaQuery.where || {}),
       userId,

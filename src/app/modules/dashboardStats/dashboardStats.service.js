@@ -1,11 +1,12 @@
 
+import { ESSAY_STATUS } from "../generateEssay/generateEssay.constant.js";
 
 const getStats = async (prisma, userId) => {
     const totalEssays = await prisma.essay.count({
         where: {
             userId,
             isDeleted: false,
-            status: { in: ["SAVED", "EDITED"] },
+            status: { in: [ESSAY_STATUS.SAVED, ESSAY_STATUS.EDITED] },
         },
     });
 
@@ -72,7 +73,7 @@ const getStats = async (prisma, userId) => {
         where: {
             userId,
             isDeleted: false,
-            status: { in: ["SAVED", "EDITED"] },
+            status: { in: [ESSAY_STATUS.SAVED, ESSAY_STATUS.EDITED] },
         },
         orderBy: {
             createdAt: "desc",
