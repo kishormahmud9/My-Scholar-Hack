@@ -41,7 +41,7 @@ router.patch(
   EssayController.saveEssay,
 );
 
-router.patch(
+router.delete(
   "/delete/:id",
   checkAuthMiddleware(Role.STUDENT),
   EssayController.deleteEssay,
