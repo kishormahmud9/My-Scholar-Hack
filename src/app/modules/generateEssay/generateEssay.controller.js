@@ -2,7 +2,7 @@ import { StatusCodes } from "http-status-codes";
 import { EssayService } from "./generateEssay.service.js";
 import { normalizeEssayText } from "../../utils/normalizeEssayText.js";
 import { toHtml } from "../../utils/toHtml.js";
-import { ESSAY_STATUS } from "./generateEssay.service.js";
+import { ESSAY_STATUS } from "./generateEssay.constant.js";
 import { SubscriptionStudentService } from "../subscriptionStudent/subscriptionStudent.service.js";
 import { envVars } from "../../config/env.js";
 
