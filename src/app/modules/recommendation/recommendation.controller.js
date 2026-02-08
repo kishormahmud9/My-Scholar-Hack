@@ -194,7 +194,20 @@ const updateScholarship = async (req, res, next) => {
   try {
     const prisma = req.prisma;
     const { id } = req.params;
-    let data = req.body;
+    let data = { ...req.body };
+
+    console.log(`[UpdateScholarship] Attempting to update ID: ${id}`);
+    // console.log(`[UpdateScholarship] Body:`, data);
+
+    // 🛡️ Pre-processing fields (especially for form-data)
+    if (data.amount !== undefined) {
+      data.amount = parseInt(String(data.amount).replace(/[^0-9]/g, ""), 10) || 0;
+    }
+
+    if (data.deadline !== undefined) {
+      const d = new Date(data.deadline);
+      data.deadline = isNaN(d.getTime()) ? null : d;
+    }
 
     // Handle uploaded images
     if (req.files && Array.isArray(req.files) && req.files.length > 0) {
@@ -202,18 +215,20 @@ const updateScholarship = async (req, res, next) => {
         return `${envVars.SERVER_URL}/uploads/images/${file.filename}`.replace(/([^:]\/)\/+/g, "$1");
       });
 
-      // If data.images already exists (as a JSON string from form-data), parse it
       let existingImages = [];
       if (data.images) {
         try {
           existingImages = typeof data.images === 'string' ? JSON.parse(data.images) : data.images;
         } catch (e) {
-          existingImages = [data.images];
+          existingImages = Array.isArray(data.images) ? data.images : [data.images];
         }
       }
 
       data.images = [...existingImages, ...imageUrls];
     }
+
+    // Ensure we don't try to update the ID itself if it's in the body
+    delete data.id;
 
     const result = await RecommendationService.updateScholarship(prisma, id, data);
 
@@ -223,6 +238,13 @@ const updateScholarship = async (req, res, next) => {
       data: result,
     });
   } catch (error) {
+    // 🛡️ Handle Prisma "Record not found" error
+    if (error.code === 'P2025') {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        message: "Scholarship not found with the provided ID",
+      });
+    }
     next(error);
   }
 };
