@@ -28,6 +28,7 @@ const compareEssays = async (req, res, next) => {
       where: {
         id: { in: [essayAId, essayBId] },
         userId,
+        status: { in: ["SAVED", "EDITED"] },
       },
     });
 

@@ -23,6 +23,10 @@ export const AdminService = {
             },
           },
           essays: {
+            where: {
+              isDeleted: false,
+              status: { in: ["SAVED", "EDITED"] },
+            },
             select: { id: true },
           },
           subscriptions: {
@@ -607,9 +611,8 @@ export const AdminService = {
     return {
       success: true,
       status: 200,
-      message: `Plan "${updatedPlan.name}" ${
-        updatedPlan.isActive ? "activated" : "deactivated"
-      } successfully`,
+      message: `Plan "${updatedPlan.name}" ${updatedPlan.isActive ? "activated" : "deactivated"
+        } successfully`,
       data: updatedPlan,
     };
   },
