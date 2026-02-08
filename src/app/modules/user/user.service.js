@@ -55,11 +55,23 @@ export const UserService = {
 
   update: async (prisma, id, data) => {
     // Synchronization logic for name/fullName and picture/profilePicture
-    const updateData = { ...data };
     const name = data.name || data.fullName;
     const picture = data.picture || data.profilePicture || data.userPicture;
     const filePath = data.filePath;
     const profileUrl = data.profileUrl;
+
+    // 🛡️ Construct clean updateData for User model
+    const userFields = [
+      "email", "name", "passwordHash", "phoneNumber", "picture",
+      "role", "status", "isVerified", "isDeleted", "isPlan", "forgotPasswordStatus"
+    ];
+
+    const updateData = {};
+    userFields.forEach(field => {
+      if (data[field] !== undefined) {
+        updateData[field] = data[field];
+      }
+    });
 
     if (name) {
       updateData.name = name;
