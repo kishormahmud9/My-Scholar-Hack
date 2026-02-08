@@ -170,7 +170,7 @@ export const EssayService = {
     return result;
   },
 
-  // SOFT DELETE or HARD DELETE essay
+  // HARD DELETE essay
   delete: async (prisma, id, userId) => {
     const essay = await prisma.essay.findFirst({
       where: {
@@ -186,19 +186,8 @@ export const EssayService = {
       throw error;
     }
 
-    // If status is GENERATING, do a HARD delete
-    if (essay.status === ESSAY_STATUS.GENERATING) {
-      return prisma.essay.delete({
-        where: { id },
-      });
-    }
-
-    // Otherwise, do a SOFT delete
-    return prisma.essay.update({
+    return prisma.essay.delete({
       where: { id },
-      data: {
-        isDeleted: true,
-      },
     });
   },
 
