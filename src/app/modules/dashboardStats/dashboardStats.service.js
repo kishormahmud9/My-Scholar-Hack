@@ -5,7 +5,7 @@ const getStats = async (prisma, userId) => {
         where: {
             userId,
             isDeleted: false,
-            status: { not: "FAILED" },
+            status: { in: ["SAVED", "EDITED"] },
         },
     });
 
@@ -15,16 +15,19 @@ const getStats = async (prisma, userId) => {
         },
     });
 
-    const threeDaysLater = new Date();
-    threeDaysLater.setDate(threeDaysLater.getDate() + 3);
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const threeDaysLater = new Date(startOfToday);
+    threeDaysLater.setDate(startOfToday.getDate() + 4); // End of 3 days from today
 
     const upcomingDeadlineCount = await prisma.application.count({
         where: {
             userId,
+            status: "PROCESSING",
             scholarship: {
                 deadline: {
-                    gte: new Date(),
-                    lte: threeDaysLater,
+                    gte: startOfToday,
+                    lt: threeDaysLater,
                 },
             },
         },
@@ -33,9 +36,10 @@ const getStats = async (prisma, userId) => {
     const upcomingDeadline = await prisma.application.findFirst({
         where: {
             userId,
+            status: "PROCESSING",
             scholarship: {
                 deadline: {
-                    gte: new Date(),
+                    gte: startOfToday,
                 },
             },
         },
@@ -68,7 +72,7 @@ const getStats = async (prisma, userId) => {
         where: {
             userId,
             isDeleted: false,
-            status: { not: "FAILED" },
+            status: { in: ["SAVED", "EDITED"] },
         },
         orderBy: {
             createdAt: "desc",
