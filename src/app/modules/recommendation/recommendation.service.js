@@ -142,7 +142,7 @@ export const RecommendationService = {
         url,
         {},
         {
-          timeout: 300000,
+          timeout: 500000,
         },
       );
 
