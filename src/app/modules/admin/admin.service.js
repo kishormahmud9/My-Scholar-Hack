@@ -569,9 +569,9 @@ export const AdminService = {
   // =========================
   getAllPlans: async (prisma) => {
     return prisma.plan.findMany({
-      orderBy: {
-        sortOrder: "asc",
-      },
+      // orderBy: {
+      //   sortOrder: "asc",
+      // },
     });
   },
 
