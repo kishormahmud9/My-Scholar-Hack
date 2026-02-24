@@ -590,6 +590,7 @@ export const AdminService = {
         id: true,
         name: true,
         isActive: true,
+        isFeatured: true,
       },
     });
 
