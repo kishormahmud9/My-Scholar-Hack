@@ -477,6 +477,8 @@ model Plan {
   // Control
   isActive  Boolean @default(true)
   sortOrder Int     @default(0)
+  isFeatured Boolean @default(false)
+
 
   // Relations (do not change)
   subscriptions Subscription[]
