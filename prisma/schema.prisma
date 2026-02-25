@@ -32,6 +32,11 @@ enum StudentSubscriptionStatus {
   LIMIT_CROSSED
 }
 
+enum SubscriptionType {
+  MONTHLY
+  YEARLY
+}
+
 
 
 enum UserRole {
@@ -435,6 +440,7 @@ model SubscriptionStudent {
   subscriptionStatus StudentSubscriptionStatus @default(ACTIVE)
   purchaseDate       DateTime                  @default(now())
   endDate            DateTime
+  type               SubscriptionType?
   payload            Json?
   invoiceUrl         String?
   invoiceFilePath    String?

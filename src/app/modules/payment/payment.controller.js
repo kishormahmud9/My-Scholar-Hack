@@ -70,8 +70,13 @@ const initiatePurchase = async (req, res, next) => {
   try {
     const { planKey } = req.params;
     const email = req.body.email;
+    const { durationType } = req.body;
 
-    const checkoutUrl = await paymentService.getCheckoutUrl(planKey, email);
+    const checkoutUrl = await paymentService.getCheckoutUrl(
+      planKey,
+      email,
+      durationType,
+    );
 
     if (!checkoutUrl) {
       return res.status(StatusCodes.NOT_FOUND).json({
@@ -94,8 +99,13 @@ const initiatePurchasefor_get = async (req, res, next) => {
   try {
     const { planKey } = req.params;
     const email = req.user.email;
+    const { durationType } = req.query;
 
-    const checkoutUrl = await paymentService.getCheckoutUrl(planKey, email);
+    const checkoutUrl = await paymentService.getCheckoutUrl(
+      planKey,
+      email,
+      durationType,
+    );
 
     if (!checkoutUrl) {
       return res.status(StatusCodes.NOT_FOUND).json({
