@@ -472,9 +472,10 @@ model Plan {
   name String @unique
 
   // UI content
-  description String?
-  features    String[]
-  planType    String?
+  description  String?
+  features     String[]
+  planType     String?
+  durationType String?
 
   // Pricing
   monthlyPrice Float
