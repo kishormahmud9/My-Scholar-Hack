@@ -32,7 +32,10 @@ enum StudentSubscriptionStatus {
   LIMIT_CROSSED
 }
 
-
+enum SubscriptionType {
+  MONTHLY
+  YEARLY
+}
 
 enum UserRole {
   STUDENT
@@ -89,7 +92,8 @@ model User {
   essayComparisons       EssayComparison[]
   notificationRecipients NotificationRecipient[]
   studentSettings        StudentSettings?
-studentReviews         studentReview[]
+  studentReviews         studentReview[]
+
   @@index([role])
   @@index([status])
 }
@@ -435,6 +439,7 @@ model SubscriptionStudent {
   subscriptionStatus StudentSubscriptionStatus @default(ACTIVE)
   purchaseDate       DateTime                  @default(now())
   endDate            DateTime
+  type               SubscriptionType?
   payload            Json?
   invoiceUrl         String?
   invoiceFilePath    String?
@@ -445,19 +450,19 @@ model SubscriptionStudent {
   // @@unique([userId]) // Removed to allow multiple plans per user
 }
 
-
 model studentReview {
   id String @id @default(uuid())
 
   userId String
-  user   User @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
 
-  rating  String?
+  rating     String?
   reviewText String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
 // ---------------
 
 model Plan {
@@ -469,6 +474,7 @@ model Plan {
   // UI content
   description String?
   features    String[]
+  planType    String?
 
   // Pricing
   monthlyPrice Float
@@ -591,12 +597,12 @@ enum FaqCategory {
 model StudentSettings {
   id String @id @default(uuid())
 
-  userId                  String  @unique
-  user                    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  fullName                String
-  emailNotifications      Boolean @default(true)
-  scholarshipUpdate      Boolean @default(true)
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  fullName             String
+  emailNotifications   Boolean @default(true)
+  scholarshipUpdate    Boolean @default(true)
   applicationReminders Boolean @default(true)
 
   createdAt DateTime @default(now())
@@ -627,17 +633,16 @@ model ScrapedData {
   id String @id @default(uuid())
 
   // Core required fields
-  name        String      
-  url         String        
-  description String?       
+  name        String
+  url         String
+  description String?
 
   // Optional categorization
-  type String              
+  type String
 
   // Raw scraped response
   payload Json?
 
-  
   status       ScrapeStatus @default(PENDING)
   errorMessage String?
 
@@ -648,7 +653,7 @@ model ScrapedData {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([url, type])   
+  @@unique([url, type])
   @@index([status])
   @@index([type])
 }

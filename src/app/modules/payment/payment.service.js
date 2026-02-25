@@ -7,10 +7,34 @@ import { SubscriptionStudentService } from "../subscriptionStudent/subscriptionS
 import { SAMCART_CHECKOUT_URLS } from "./payment.constant.js";
 import { generateInvoicePDF } from "../../utils/template/invoice.mjs";
 
+// Map SamCart product display names to internal plan keys and duration type.
+// durationType can be "MONTHLY" or "YEARLY". These names MUST match SamCart's product.name.
 const PRODUCT_PLAN_MAP = {
-  "HackScholarAgent:  Essay Hack": "essay_hack",
-  "HackScholarAgent: Essay Hack+": "essay_hack_plus",
-  "HackScholarAgent: Hack Pro": "hack_pro",
+  "HackScholarAgent:  Essay Hack": {
+    planKey: "essay_hack",
+    durationType: "MONTHLY",
+  },
+  "HackScholarAgent: Essay Hack+": {
+    planKey: "essay_hack_plus",
+    durationType: "MONTHLY",
+  },
+  "HackScholarAgent: Hack Pro": {
+    planKey: "hack_pro",
+    durationType: "MONTHLY",
+  },
+  // YEARLY variants (ensure these strings exactly match SamCart product names)
+  "HackScholarAgent:  Essay Hack (Yearly)": {
+    planKey: "essay_hack",
+    durationType: "YEARLY",
+  },
+  "HackScholarAgent: Essay Hack+ (Yearly)": {
+    planKey: "essay_hack_plus",
+    durationType: "YEARLY",
+  },
+  "HackScholarAgent: Hack Pro (Yearly)": {
+    planKey: "hack_pro",
+    durationType: "YEARLY",
+  },
 };
 
 const TRIAL_DAYS = 7;
@@ -30,8 +54,9 @@ const processSamcartEvent = async (payload) => {
   const email = customer.email.toLowerCase();
   const productName = product.name.trim();
 
-  // Find planKey (robust matching)
+  // Find planKey and durationType (robust matching)
   let planKey = null;
+  let durationType = "MONTHLY";
   for (const [key, value] of Object.entries(PRODUCT_PLAN_MAP)) {
     // Normalize spaces and case for matching
     const normalizedKey = key.replace(/\s+/g, " ").toLowerCase();
@@ -41,9 +66,17 @@ const processSamcartEvent = async (payload) => {
 
     if (
       normalizedKey === normalizedProductName ||
-      normalizedProductName.includes(value.replace(/_/g, " "))
+      normalizedProductName.includes(
+        (typeof value === "string" ? value : value.planKey).replace(/_/g, " "),
+      )
     ) {
-      planKey = value;
+      if (typeof value === "string") {
+        planKey = value;
+        durationType = "MONTHLY";
+      } else {
+        planKey = value.planKey;
+        durationType = value.durationType || "MONTHLY";
+      }
       break;
     }
   }
@@ -88,10 +121,12 @@ const processSamcartEvent = async (payload) => {
       `✅ Processing successful order for user ${user.id}, plan ${planKey}`,
     );
     let status = "active";
-    let expiresAt = addDays(now, 30); // Default to 30 days
+    // Base expiry: 30 days for MONTHLY, 365 days for YEARLY
+    let expiresAt =
+      durationType === "YEARLY" ? addDays(now, 365) : addDays(now, 30);
 
-    // Determine if it should be a trial (Only for first-time essay_hack orders)
-    if (planKey === "essay_hack") {
+    // Determine if it should be a trial (Only for first-time essay_hack MONTHLY orders)
+    if (planKey === "essay_hack" && durationType === "MONTHLY") {
       const hasUsedTrial = await prisma.subscription.findFirst({
         where: {
           userId: user.id,
@@ -165,6 +200,7 @@ const processSamcartEvent = async (payload) => {
         subscriptionStatus: studentStatus,
         purchaseDate: now,
         endDate: expiresAt,
+        type: durationType === "YEARLY" ? "YEARLY" : "MONTHLY",
         payload: payload, // Store the raw SamCart webhook payload
         invoiceUrl: invoiceUrl,
         invoiceFilePath: invoiceFilePath.replace(/\\/g, "/"),
@@ -246,17 +282,28 @@ export const paymentService = {
 
     return recentSubscription;
   },
-  getCheckoutUrl: async (planKey, email) => {
-    const baseUrl = SAMCART_CHECKOUT_URLS[planKey];
-    if (!baseUrl) return null;
+  getCheckoutUrl: async (planKey, email, durationType) => {
+    const normalizedDuration =
+      durationType === "YEARLY" ? "YEARLY" : "MONTHLY";
+
+    const config = SAMCART_CHECKOUT_URLS[planKey];
+    if (!config) return null;
+
+    // Support both legacy string URLs and new per-duration configs
+    const baseUrl =
+      typeof config === "string"
+        ? config
+        : config[normalizedDuration] || config.MONTHLY;
 
     // Check if URL has a fragment (#)
     const [mainUrl, fragment] = baseUrl.split("#");
     const separator = mainUrl.includes("?") ? "&" : "?";
 
-    // Reconstruct URL: mainUrl + ?email=... + #fragment
+    // Reconstruct URL: mainUrl + ?email=...&durationType=... + #fragment
     const finalUrl = `${mainUrl}${separator}email=${encodeURIComponent(
       email,
+    )}&durationType=${encodeURIComponent(
+      normalizedDuration,
     )}${fragment ? "#" + fragment : ""}`;
 
     return finalUrl;

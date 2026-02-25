@@ -628,6 +628,7 @@ export const AdminService = {
       monthlyPrice,
       yearlyPrice,
       features,
+      planType,
       sortOrder,
     } = data;
 
@@ -667,6 +668,7 @@ export const AdminService = {
         description: description ?? plan.description,
         monthlyPrice: monthlyPrice ?? plan.monthlyPrice,
         yearlyPrice: yearlyPrice ?? plan.yearlyPrice,
+        planType: planType ?? plan.planType,
         features: Array.isArray(features) ? features : plan.features,
         sortOrder: sortOrder ?? plan.sortOrder,
       },
@@ -730,6 +732,7 @@ export const AdminService = {
       name,
       description,
       features,
+      planType,
       monthlyPrice,
       yearlyPrice,
       isActive = true,
@@ -764,6 +767,7 @@ export const AdminService = {
         name,
         description,
         features: Array.isArray(features) ? features : [],
+        planType,
         monthlyPrice,
         yearlyPrice,
         isActive,
