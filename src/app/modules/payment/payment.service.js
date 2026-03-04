@@ -10,7 +10,7 @@ import { generateInvoicePDF } from "../../utils/template/invoice.mjs";
 // Map SamCart product display names to internal plan keys and duration type.
 // durationType can be "MONTHLY" or "YEARLY". These names MUST match SamCart's product.name.
 const PRODUCT_PLAN_MAP = {
-  "HackScholarAgent:  Essay Hack": {
+  "HackScholarAgent: Essay Hack": {
     planKey: "essay_hack",
     durationType: "MONTHLY",
   },
@@ -22,16 +22,16 @@ const PRODUCT_PLAN_MAP = {
     planKey: "hack_pro",
     durationType: "MONTHLY",
   },
-  // YEARLY variants (ensure these strings exactly match SamCart product names)
-  "HackScholarAgent:  Essay Hack (Yearly)": {
+  // YEARLY variants
+  "HackScholarAgent: Essay Hack Yearly": {
     planKey: "essay_hack",
     durationType: "YEARLY",
   },
-  "HackScholarAgent: Essay Hack+ (Yearly)": {
+  "HackScholarAgent: Essay Hack+ Yearly": {
     planKey: "essay_hack_plus",
     durationType: "YEARLY",
   },
-  "HackScholarAgent: Hack Pro (Yearly)": {
+  "HackScholarAgent: Hack Pro Yearly": {
     planKey: "hack_pro",
     durationType: "YEARLY",
   },
@@ -57,27 +57,34 @@ const processSamcartEvent = async (payload) => {
   // Find planKey and durationType (robust matching)
   let planKey = null;
   let durationType = "MONTHLY";
-  for (const [key, value] of Object.entries(PRODUCT_PLAN_MAP)) {
-    // Normalize spaces and case for matching
-    const normalizedKey = key.replace(/\s+/g, " ").toLowerCase();
-    const normalizedProductName = productName
-      .replace(/\s+/g, " ")
-      .toLowerCase();
+  const normalizedProductName = productName.replace(/\s+/g, " ").toLowerCase();
 
-    if (
-      normalizedKey === normalizedProductName ||
-      normalizedProductName.includes(
-        (typeof value === "string" ? value : value.planKey).replace(/_/g, " "),
-      )
-    ) {
-      if (typeof value === "string") {
-        planKey = value;
-        durationType = "MONTHLY";
-      } else {
-        planKey = value.planKey;
-        durationType = value.durationType || "MONTHLY";
-      }
+  // 1️⃣ Try Exact Match First (Safest)
+  for (const [key, value] of Object.entries(PRODUCT_PLAN_MAP)) {
+    const normalizedKey = key.replace(/\s+/g, " ").toLowerCase();
+    if (normalizedKey === normalizedProductName) {
+      planKey = typeof value === "string" ? value : value.planKey;
+      durationType = typeof value === "string" ? "MONTHLY" : (value.durationType || "MONTHLY");
       break;
+    }
+  }
+
+  // 2️⃣ Fallback to Partial Matching if no exact match
+  if (!planKey) {
+    for (const [key, value] of Object.entries(PRODUCT_PLAN_MAP)) {
+      const searchString = (typeof value === "string" ? value : value.planKey).replace(/_/g, " ");
+
+      if (normalizedProductName.includes(searchString)) {
+        // Safety: Ensure we don't match a Yearly product to a Monthly config (or vice versa)
+        const isYearlyProduct = normalizedProductName.includes("yearly");
+        const isYearlyEntry = (typeof value !== "string" && value.durationType === "YEARLY");
+
+        if (isYearlyProduct !== isYearlyEntry) continue;
+
+        planKey = typeof value === "string" ? value : value.planKey;
+        durationType = typeof value === "string" ? "MONTHLY" : (value.durationType || "MONTHLY");
+        break;
+      }
     }
   }
 
