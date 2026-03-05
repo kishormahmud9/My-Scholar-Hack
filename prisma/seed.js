@@ -66,7 +66,7 @@ async function main() {
   const plansData = [
     { name: "essay_hack", price: 9.99 },
     { name: "essay_hack_plus", price: 19.99 },
-    { name: "hack_pro", price: 29.99 },
+    { name: "essay_hack_pro", price: 29.99 },
   ];
 
   const plans = [];

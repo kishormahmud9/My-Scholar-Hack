@@ -19,7 +19,7 @@ const PRODUCT_PLAN_MAP = {
     durationType: "MONTHLY",
   },
   "HackScholarAgent: Hack Pro": {
-    planKey: "hack_pro",
+    planKey: "essay_hack_pro",
     durationType: "MONTHLY",
   },
   // YEARLY variants
@@ -32,7 +32,7 @@ const PRODUCT_PLAN_MAP = {
     durationType: "YEARLY",
   },
   "HackScholarAgent: Hack Pro Yearly": {
-    planKey: "hack_pro",
+    planKey: "essay_hack_pro",
     durationType: "YEARLY",
   },
 };
