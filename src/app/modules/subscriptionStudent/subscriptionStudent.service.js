@@ -70,64 +70,23 @@ export const SubscriptionStudentService = {
       const planName = currentActive.subscription.plan.name;
       const planNameLower = planName.toLowerCase();
 
-      let limitInfo = PLAN_LIMITS[planName];
-      if (!limitInfo) {
-        if (planNameLower.includes("pro"))
-          limitInfo = PLAN_LIMITS[PLAN_NAMES.ESSAY_HACK_PRO];
-        else if (
-          planNameLower.includes("+") ||
-          planNameLower.includes("plus")
-        )
-          limitInfo = PLAN_LIMITS[PLAN_NAMES.ESSAY_HACK_PLUS];
-        else if (planNameLower.includes("hack"))
-          limitInfo = PLAN_LIMITS[PLAN_NAMES.ESSAY_HACK];
-        else limitInfo = PLAN_LIMITS[PLAN_NAMES.FREE];
-      }
-
       // 🔁 Adjust limits based on subscription type (MONTHLY vs YEARLY)
-      // type is stored on SubscriptionStudent as SubscriptionType? (MONTHLY | YEARLY)
       const subscriptionType = currentActive.type || "MONTHLY";
+      let limitInfo = null;
 
-      // For yearly subscriptions, the user gets the equivalent of 12 months of usage
-      // within a single 365‑day window from purchaseDate:
-      // - essay_hack: 5 * 12 = 60
-      // - essay_hack_plus: 10 * 12 = 120
-      // - essay_hack_pro: unlimited
-      if (subscriptionType === "YEARLY") {
-        if (planNameLower.includes("pro")) {
-          // Pro stays unlimited
-          limitInfo = {
-            maxEssays: Infinity,
-            isMonthly: false,
-          };
-        } else if (
-          planNameLower.includes("+") ||
-          planNameLower.includes("plus")
-        ) {
-          // essay_hack_plus yearly: 10 * 12 = 120 essays over 365 days
-          limitInfo = {
-            maxEssays: PLAN_LIMITS[PLAN_NAMES.ESSAY_HACK_PLUS].maxEssays * 12,
-            isMonthly: false,
-          };
-        } else if (planNameLower.includes("hack")) {
-          // essay_hack yearly: 5 * 12 = 60 essays over 365 days
-          limitInfo = {
-            maxEssays: PLAN_LIMITS[PLAN_NAMES.ESSAY_HACK].maxEssays * 12,
-            isMonthly: false,
-          };
-        }
-      }
+      const planLimits = PLAN_LIMITS[planName] || PLAN_LIMITS[PLAN_NAMES.FREE];
+      limitInfo = planLimits[subscriptionType] || planLimits.MONTHLY;
 
       if (limitInfo.maxEssays !== Infinity) {
-        // For monthly limits, we count from the later of purchaseDate or start of current month.
-        // For yearly (or non‑monthly) limits, we count from purchaseDate (365‑day window).
+        // For monthly limits, we count from the later of purchaseDate or start of billing cycle.
+        // For yearly limits, we count from purchaseDate (365‑day window).
         const threshold = limitInfo.isMonthly
           ? new Date(
-              Math.max(
-                currentActive.purchaseDate.getTime(),
-                startOfMonth.getTime(),
-              ),
-            )
+            Math.max(
+              currentActive.purchaseDate.getTime(),
+              startOfMonth.getTime(),
+            ),
+          )
           : currentActive.purchaseDate;
 
         const pCount = await prisma.essay.count({
@@ -213,7 +172,23 @@ export const SubscriptionStudentService = {
     durationType = "MONTHLY",
   ) => {
     const now = new Date();
-    const endDate = new Date(now);
+    let startDate = new Date(now);
+
+    // 1.0️⃣ Fix Stacking: If user has an existing plan, start the new one AFTER the last one ends
+    const lastPlan = await prisma.subscriptionStudent.findFirst({
+      where: {
+        userId,
+        endDate: { gt: now },
+        subscriptionStatus: { in: ["ACTIVE", "TRAIL", "INACTIVE", "LIMIT_CROSSED"] }
+      },
+      orderBy: { endDate: "desc" }
+    });
+
+    if (lastPlan) {
+      startDate = new Date(lastPlan.endDate);
+    }
+
+    const endDate = new Date(startDate);
 
     if (durationType === "YEARLY") {
       endDate.setFullYear(endDate.getFullYear() + 1);
