@@ -27,7 +27,7 @@ const PRODUCT_PLAN_MAP = {
     planKey: "essay_hack",
     durationType: "YEARLY",
   },
-  "HackScholarAgent: Essay Hack+ Yearly": {
+  "MyScholarHack: Essay Hack+ Yearly": {
     planKey: "essay_hack_plus",
     durationType: "YEARLY",
   },
