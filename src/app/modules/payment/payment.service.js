@@ -10,28 +10,28 @@ import { generateInvoicePDF } from "../../utils/template/invoice.mjs";
 // Map SamCart product display names to internal plan keys and duration type.
 // durationType can be "MONTHLY" or "YEARLY". These names MUST match SamCart's product.name.
 const PRODUCT_PLAN_MAP = {
-  "HackScholarAgent: Essay Hack": {
+  "MyScholarHack": {
     planKey: "essay_hack",
     durationType: "MONTHLY",
   },
-  "HackScholarAgent: Essay Hack+": {
+  "MyScholarHack Plus": {
     planKey: "essay_hack_plus",
     durationType: "MONTHLY",
   },
-  "HackScholarAgent: Hack Pro": {
+  "MyScholarHack Pro": {
     planKey: "essay_hack_pro",
     durationType: "MONTHLY",
   },
   // YEARLY variants
-  "HackScholarAgent: Essay Hack Yearly": {
+  "MyScholarHack Yearly": {
     planKey: "essay_hack",
     durationType: "YEARLY",
   },
-  "MyScholarHack: Essay Hack+ Yearly": {
+  "MyScholarHack Plus Yearly": {
     planKey: "essay_hack_plus",
     durationType: "YEARLY",
   },
-  "HackScholarAgent: Hack Pro Yearly": {
+  "MyScholarHack Pro Yearly": {
     planKey: "essay_hack_pro",
     durationType: "YEARLY",
   },
