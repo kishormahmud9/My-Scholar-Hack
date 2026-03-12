@@ -1,6 +1,8 @@
 import { StatusCodes } from "http-status-codes";
 import { ManualApplicationService } from "./manualApplication.service.js";
 
+import { Role } from "../../utils/role.js";
+
 const createManualApplication = async (req, res, next) => {
   try {
     const prisma = req.prisma;
@@ -22,7 +24,12 @@ const createManualApplication = async (req, res, next) => {
 const getAllManualApplications = async (req, res, next) => {
   try {
     const prisma = req.prisma;
-    const result = await ManualApplicationService.getAll(prisma, req.query);
+    const userId = req.user.id;
+    const role = req.user.role;
+
+    const filter = role === Role.STUDENT ? { userId } : {};
+
+    const result = await ManualApplicationService.getAll(prisma, req.query, filter);
 
     res.status(StatusCodes.OK).json({
       success: true,
@@ -39,8 +46,12 @@ const getManualApplicationById = async (req, res, next) => {
   try {
     const prisma = req.prisma;
     const { id } = req.params;
+    const userId = req.user.id;
+    const role = req.user.role;
 
-    const result = await ManualApplicationService.getById(prisma, id);
+    const where = role === Role.STUDENT ? { id, userId } : { id };
+
+    const result = await ManualApplicationService.getById(prisma, where);
 
     if (!result) {
       return res.status(StatusCodes.NOT_FOUND).json({
@@ -63,7 +74,20 @@ const updateManualApplication = async (req, res, next) => {
   try {
     const prisma = req.prisma;
     const { id } = req.params;
+    const userId = req.user.id;
+    const role = req.user.role;
     const data = req.body;
+
+    // Check ownership for students
+    if (role === Role.STUDENT) {
+      const existing = await ManualApplicationService.getById(prisma, { id, userId });
+      if (!existing) {
+        return res.status(StatusCodes.NOT_FOUND).json({
+          success: false,
+          message: "Manual application not found or unauthorized",
+        });
+      }
+    }
 
     const result = await ManualApplicationService.update(prisma, id, data);
 
@@ -81,6 +105,19 @@ const deleteManualApplication = async (req, res, next) => {
   try {
     const prisma = req.prisma;
     const { id } = req.params;
+    const userId = req.user.id;
+    const role = req.user.role;
+
+    // Check ownership for students
+    if (role === Role.STUDENT) {
+      const existing = await ManualApplicationService.getById(prisma, { id, userId });
+      if (!existing) {
+        return res.status(StatusCodes.NOT_FOUND).json({
+          success: false,
+          message: "Manual application not found or unauthorized",
+        });
+      }
+    }
 
     await ManualApplicationService.remove(prisma, id);
 
