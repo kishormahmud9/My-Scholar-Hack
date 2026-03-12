@@ -93,6 +93,7 @@ model User {
   notificationRecipients NotificationRecipient[]
   studentSettings        StudentSettings?
   studentReviews         studentReview[]
+  manualApplications     ManualApplication[]
 
   @@index([role])
   @@index([status])
@@ -335,9 +336,10 @@ model Essay {
   comparisonsAsA EssayComparison[] @relation("EssayA")
   comparisonsAsB EssayComparison[] @relation("EssayB")
 
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  applications Application[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  applications       Application[]
+  manualApplications ManualApplication[]
 }
 
 model EssayComparison {
@@ -385,9 +387,10 @@ model Scholarship {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  recommendations Recommendation[]
-  essays          Essay[]
-  applications    Application[]
+  recommendations    Recommendation[]
+  essays             Essay[]
+  applications       Application[]
+  manualApplications ManualApplication[]
 
   @@unique([title, provider], name: "title_provider")
 }
@@ -426,6 +429,34 @@ model Application {
   scholarshipTitle    String
   scholarshipAmount   Int?
   scholarshipDeadline DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ManualApplication {
+  id     String            @id @default(cuid())
+  status ApplicationStatus @default(DRAFT)
+
+  // relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  essayId String?
+  essay   Essay?  @relation(fields: [essayId], references: [id])
+
+  scholarshipId String
+  scholarship   Scholarship @relation(fields: [scholarshipId], references: [id])
+
+  // snapshots (optional but powerful)
+  essayTitle          String?
+  scholarshipTitle    String
+  
+  scholarshipDeadline DateTime?
+  scholarshipName     String?
+  prompt              String?
+  details             String?
+  requirements        String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -482,10 +513,9 @@ model Plan {
   yearlyPrice  Float
 
   // Control
-  isActive  Boolean @default(true)
-  sortOrder Int     @default(0)
+  isActive   Boolean @default(true)
+  sortOrder  Int     @default(0)
   isFeatured Boolean @default(false)
-
 
   // Relations (do not change)
   subscriptions Subscription[]
