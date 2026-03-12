@@ -6,7 +6,7 @@ import { scholarshipSearchableFields } from "./recommendation.constant.js";
 export const RecommendationService = {
   // CALL AI RECOMMENDATION API
   getRecommendationsFromAI: async (userId) => {
-
+    console.log("USER ID >", userId);
     console.log("Fetching AI recommendations for user ID: 🔥", userId);
     // AI server expects userId as a path parameter: /api/recommend-scholarships/:userId
     const baseUrl = envVars.AI_RECOMMENDATION_API_URL.replace(/\/$/, "");
@@ -24,9 +24,9 @@ export const RecommendationService = {
         },
       },
     );
-    console.log("✅ AI RECOMMENDATION RESPONSE RECEIVED");
-    console.log("Status:", response.status);
     if (response.data) {
+      console.log("✅ AI RECOMMENDATION RESPONSE RECEIVED");
+      console.log("Status:", response.status);
       console.log("Data Summary:", typeof response.data === 'object' ? Object.keys(response.data) : "Raw Data");
     }
     // console.log("Full Data:", JSON.stringify(response.data, null, 2)); // Uncomment for full dump
@@ -200,6 +200,7 @@ export const RecommendationService = {
 
       console.log(`📦 Processing ${data.length} scholarships`);
       for (const item of data) {
+        console.log(`🔍 Upserting scholarship: ${item.title}`);
         const deadlineDate = (() => {
           if (!item.deadline) return null;
           const d = new Date(item.deadline);

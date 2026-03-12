@@ -176,9 +176,11 @@ const syncScholarships = async (req, res, next) => {
 
     // 1. Trigger the sync and wait for results
     const syncResult = await RecommendationService.triggerScholarshipSync();
+    console.log("📡 Sync trigger result from AI API:", JSON.stringify(syncResult).substring(0, 100) + "...");
 
     // 2. Save the received scholarships directly
     const saveResult = await RecommendationService.saveScholarships(prisma, syncResult);
+    console.log(`💾 Saved ${saveResult.count} scholarships to DB`);
 
     res.status(StatusCodes.OK).json({
       success: true,
