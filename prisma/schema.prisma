@@ -94,6 +94,7 @@ model User {
   studentSettings        StudentSettings?
   studentReviews         studentReview[]
   manualApplications     ManualApplication[]
+  studentInstructions    StudentInstruction[]
 
   @@index([role])
   @@index([status])
@@ -390,7 +391,6 @@ model Scholarship {
   recommendations    Recommendation[]
   essays             Essay[]
   applications       Application[]
-  manualApplications ManualApplication[]
 
   @@unique([title, provider], name: "title_provider")
 }
@@ -445,18 +445,17 @@ model ManualApplication {
   essayId String?
   essay   Essay?  @relation(fields: [essayId], references: [id])
 
-  scholarshipId String
-  scholarship   Scholarship @relation(fields: [scholarshipId], references: [id])
-
-  // snapshots (optional but powerful)
-  essayTitle          String?
-  scholarshipTitle    String
-  
-  scholarshipDeadline DateTime?
-  scholarshipName     String?
-  prompt              String?
-  details             String?
-  requirements        String?
+  // New fields for manual entry
+  title       String
+  type        String
+  amount      Int
+  provider    String
+  deadline    DateTime?
+  subject     String?
+  description String?
+  images      String[]
+  detailUrl   String?
+  prompt      String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -687,4 +686,18 @@ model ScrapedData {
   @@unique([url, type])
   @@index([status])
   @@index([type])
+}
+
+model StudentInstruction {
+  id                   String  @id @default(cuid())
+  title                String?
+  instructionText      String? @db.Text
+  instructionPrompt    String? @db.Text
+  aboutScholarshipText String? @db.Text
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

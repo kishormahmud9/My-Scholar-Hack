@@ -16,6 +16,12 @@ const getStats = async (prisma, userId) => {
         },
     });
 
+    const manualScholarshipAdded = await prisma.manualApplication.count({
+        where: {
+            userId,
+        },
+    });
+
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const threeDaysLater = new Date(startOfToday);
@@ -30,6 +36,17 @@ const getStats = async (prisma, userId) => {
                     gte: startOfToday,
                     lt: threeDaysLater,
                 },
+            },
+        },
+    });
+
+    const upcomingManualDeadlineCount = await prisma.manualApplication.count({
+        where: {
+            userId,
+            status: "PROCESSING",
+            deadline: {
+                gte: startOfToday,
+                lt: threeDaysLater,
             },
         },
     });
@@ -59,6 +76,36 @@ const getStats = async (prisma, userId) => {
         },
     });
 
+    const upcomingManualDeadline = await prisma.manualApplication.findFirst({
+        where: {
+            userId,
+            status: "PROCESSING",
+            deadline: {
+                gte: startOfToday,
+            },
+        },
+        orderBy: {
+            deadline: "asc",
+        },
+        select: {
+            title: true,
+            deadline: true,
+        },
+    });
+
+    // Determine the earliest deadline between regular and manual applications
+    let finalUpcomingDeadline = upcomingDeadline;
+    if (upcomingManualDeadline) {
+        if (!upcomingDeadline || upcomingManualDeadline.deadline < upcomingDeadline.scholarship.deadline) {
+            finalUpcomingDeadline = {
+                scholarshipTitle: upcomingManualDeadline.title,
+                scholarship: {
+                    deadline: upcomingManualDeadline.deadline,
+                },
+            };
+        }
+    }
+
     const recommendations = await prisma.recommendation.findMany({
         where: { userId },
         include: {
@@ -82,10 +129,10 @@ const getStats = async (prisma, userId) => {
 
     return {
         totalEssays,
-        scholarshipAdded,
+        scholarshipAdded: scholarshipAdded + manualScholarshipAdded,
         totalRecommendations: recommendations.length,
-        upcomingDeadline,
-        upcomingDeadlineCount,
+        upcomingDeadline: finalUpcomingDeadline,
+        upcomingDeadlineCount: upcomingDeadlineCount + upcomingManualDeadlineCount,
         essays,
         recommendations,
     };

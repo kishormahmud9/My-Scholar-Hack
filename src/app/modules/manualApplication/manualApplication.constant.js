@@ -1,15 +1,15 @@
 export const manualApplicationSearchableFields = [
-  "scholarshipTitle",
-  "scholarshipName",
-  "essayTitle",
+  "title",
+  "type",
+  "provider",
+  "subject",
+  "description",
   "prompt",
-  "details",
-  "requirements",
 ];
 
 export const manualApplicationFilterableFields = [
   "status",
   "userId",
-  "scholarshipId",
   "essayId",
+  "type",
 ];
