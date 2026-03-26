@@ -3,7 +3,16 @@ import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
-async function main() {
+export async function seed() {
+  const adminExists = await prisma.user.findUnique({
+    where: { email: "admin@test.com" },
+  });
+
+  if (adminExists) {
+    console.log("database seed already exist");
+    return;
+  }
+
   console.log("🌱 Seeding database...");
 
   const password = await bcrypt.hash("123456", 10);
@@ -126,16 +135,19 @@ async function main() {
     "📦 Plans:",
     plans.map((p) => p.name),
   );
+
+  await prisma.$disconnect();
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+// Remove automatic execution here, it will be called from server.js
+// seed()
+//   .catch((e) => {
+//     console.error(e);
+//     process.exit(1);
+//   })
+//   .finally(async () => {
+//     await prisma.$disconnect();
+//   });
 
 // import { PrismaClient, UserRole, AuthProviderType } from "@prisma/client";
 // import bcrypt from "bcrypt";

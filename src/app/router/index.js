@@ -31,6 +31,7 @@ import { StudentSettingsRoutes } from "../modules/studentSettings/studentSetting
 import { DataScraperRoutes } from "../modules/admin/data_scraper/dataScraper.route.js";
 import { StudentReviewRoutes } from "../modules/studentReview/studentReview.route.js";
 import { ManualApplicationRoutes } from "../modules/manualApplication/manualApplication.route.js";
+import { StudentInstructionRoutes } from "../modules/studentInstructionForEssay/studentInstruction.route.js";
 
 export const router = Router();
 
@@ -157,6 +158,10 @@ const moduleRoutes = [
   {
     path: "/manual-application",
     route: ManualApplicationRoutes,
+  },
+  {
+    path: "/student-instruction",
+    route: StudentInstructionRoutes,
   },
 ];
 

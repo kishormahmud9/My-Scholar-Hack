@@ -8,12 +8,16 @@ import { startScholarshipDeadlineCron } from "./app/modules/student_notification
 import { startScholarshipSyncCron } from "./app/modules/recommendation/scholarshipSync.cron.js";
 
 import prisma from "./app/prisma/client.js";
+import { seed } from "../prisma/seed.js";
 
 const PORT = envVars.PORT || 5001;
 let server;
 
 const startServer = async () => {
   try {
+    // 🌱 Run database seed
+    await seed();
+
     await connectRedis();
 
     server = http.createServer(app);
