@@ -6,7 +6,6 @@ const create = async (prisma, data) => {
     data,
     include: {
       user: true,
-      scholarship: true,
       essay: true,
     },
   });
@@ -27,7 +26,6 @@ const getAll = async (prisma, query, filter = {}) => {
     ...prismaQuery,
     include: {
       user: true,
-      scholarship: true,
       essay: true,
     },
   });
@@ -47,18 +45,12 @@ const getById = async (prisma, where) => {
     where: typeof where === "string" ? { id: where } : where,
     include: {
       user: true,
-      scholarship: true,
       essay: true,
     },
   });
 };
 
 const update = async (prisma, where, data) => {
-  // We need to find the record first if we are using findFirst-like behavior for update
-  // or use updateMany if we want to update with multiple conditions.
-  // Using update with a complex where is only supported for unique fields.
-  // So we first find or we use updateMany if it's non-unique (but here it should be unique by id).
-  
   const targetWhere = typeof where === "string" ? { id: where } : where;
   
   return await prisma.manualApplication.update({
@@ -66,7 +58,6 @@ const update = async (prisma, where, data) => {
     data,
     include: {
       user: true,
-      scholarship: true,
       essay: true,
     },
   });
