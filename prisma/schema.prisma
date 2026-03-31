@@ -446,19 +446,21 @@ model ManualApplication {
   essay   Essay?  @relation(fields: [essayId], references: [id])
 
   // New fields for manual entry
-  title       String
-  type        String
-  amount      Int
-  provider    String
+  title       String?
+  type        String?
+  amount      Int @default(0)
+  provider    String?
   deadline    DateTime?
   subject     String?
   description String?
-  images      String[]
+  images String[] @default([])
   detailUrl   String?
   prompt      String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+    // 🔥 optional but recommended (for faster queries)
+  @@index([userId])
 }
 
 model SubscriptionStudent {
